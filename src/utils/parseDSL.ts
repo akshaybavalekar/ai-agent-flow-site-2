@@ -6,9 +6,9 @@
  * ~80% fewer tokens than JSON. Parser is transparent to GridView — output
  * is identical shape to what JSON-based cards produce.
  *
- * SUPPORTED CARD TYPES (22):
+ * SUPPORTED CARD TYPES (23):
  *   Flat:      stat · callout · person-card · relationship-card
- *              incident-card · info-card · country-card
+ *              incident-card · info-card · country-card · avatar-prompt
  *   Container: kpi-strip · metric-list · bullet-list · alert · timeline
  *              checklist · pipeline · ranked-list · bar-chart · donut
  *              waterfall · line-chart · org-roster · delegation-card
@@ -66,6 +66,7 @@ export const DSL_SCHEMA: Record<string, { pipeCount: number; fields: string[] }>
     'incident-card':     { pipeCount: 5, fields: ['severity','title','summary','impact','resolution'] },
     'info-card':         { pipeCount: 5, fields: ['icon','title','body','cta','ctaPhrase'] },
     'country-card':      { pipeCount: 7, fields: ['country','flag','revenue','employees','politicalRisk','relationshipHealth','keyContact'] },
+    'avatar-prompt':     { pipeCount: 5, fields: ['question','showProgress','progressStep','progressTotal','wide'] },
     // Container headers
     'kpi-strip':         { pipeCount: 0, fields: [] },
     'metric-list':       { pipeCount: 1, fields: ['title'] },
@@ -147,7 +148,7 @@ const CONTAINER_TYPES   = new Set(Object.keys(CONTAINER_ITEM_PREFIXES));
 const ALL_ITEM_PREFIXES = new Set(Object.values(CONTAINER_ITEM_PREFIXES));
 const FLAT_TYPES        = new Set([
     'stat', 'callout', 'person-card', 'relationship-card',
-    'incident-card', 'info-card', 'country-card', 'image-card',
+    'incident-card', 'info-card', 'country-card', 'image-card', 'avatar-prompt',
 ]);
 
 // ── Item parsers ──────────────────────────────────────────────────────────────
@@ -320,6 +321,19 @@ function parseFlatCard(type: string, fields: string[], span?: 'full'): CardDef |
         case 'image-card': {
             const [imageUrl, caption, subtitle] = fields;
             return Object.assign(card, { imageUrl: n(imageUrl), caption: n(caption), subtitle: n(subtitle) });
+        }
+        case 'avatar-prompt': {
+            const [question, showProgressStr, progressStepStr, progressTotalStr, wideStr] = fields;
+            Object.assign(card, { question: n(question) });
+            if (n(showProgressStr) !== undefined) card.showProgress = b(showProgressStr);
+            if (n(progressStepStr) !== undefined) {
+                card.progressStep = parseInt(n(progressStepStr) ?? '0', 10) || 0;
+            }
+            if (n(progressTotalStr) !== undefined) {
+                card.progressTotal = parseInt(n(progressTotalStr) ?? '4', 10) || 4;
+            }
+            if (n(wideStr) !== undefined) card.questionWide = b(wideStr);
+            return card;
         }
         default:
             return null;

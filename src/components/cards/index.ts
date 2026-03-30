@@ -25,6 +25,9 @@ export { InfoCard } from './InfoCard';
 export { BulletListCard } from './BulletListCard';
 export { ImageCard } from './ImageCard';
 
+// Flow / avatar layer (1)
+export { AvatarPromptCard } from './AvatarPromptCard';
+
 // Comparison (2)
 export { ComparisonTable } from './ComparisonTable';
 export { RankedListCard } from './RankedListCard';

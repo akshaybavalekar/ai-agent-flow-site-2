@@ -22,10 +22,12 @@ import {
     DecisionCard, DelegationCard,
     // Cross-Domain Intelligence (4)
     RelationshipCard, CountryCard, DataClusterCard, CalendarCard,
+    // Flow (1)
+    AvatarPromptCard,
 } from '@/components/cards';
 
 /* ═══════════════════════════════════════════════════════════
-   GridView — Composable Grid Template (30 Card Types)
+   GridView — Composable Grid Template (31 Card Types)
    
    A single template that accepts a layout code and an array
    of card definitions. The tele fills it dynamically for any
@@ -84,6 +86,7 @@ const CARD_MAP: Record<string, React.FC<any>> = {
     'country-card': CountryCard,
     'data-cluster': DataClusterCard,
     'calendar': CalendarCard,
+    'avatar-prompt': AvatarPromptCard,
     // Aliases — common hallucinated type names
     'profile-roster': OrgRoster,
     'area-chart': LineChart,
@@ -111,6 +114,7 @@ const CARD_SIZE: Record<string, number> = {
     'decision-card': 2, 'delegation-card': 2,
     // Cross-Domain Intelligence
     'relationship-card': 2, 'country-card': 2,
+    'avatar-prompt': 2,
 };
 
 function getRowWeight(rowCards: CardDef[]): number {
@@ -465,7 +469,7 @@ export const GridView: React.FC<GridViewProps> = ({
                 `[UNKNOWN CARD TYPE] ${unknownTypes.map(t => `"${t}"`).join(', ')} — rendered as blank slot(s). ` +
                 `Check spelling. Valid: stat, callout, kpi-strip, metric-list, bullet-list, ` +
                 `bar-chart, donut, timeline, checklist, pipeline, ranked-list, person-card, alert, ` +
-                `info-card, table, incident-card, relationship-card, country-card, image-card.`
+                `info-card, table, incident-card, relationship-card, country-card, image-card, avatar-prompt.`
             );
         }
     }, [layout, cards.length, isHybrid, rows, clampCount, resolvedLayout]);
