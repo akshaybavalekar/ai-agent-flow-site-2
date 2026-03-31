@@ -6,9 +6,11 @@
  * ~80% fewer tokens than JSON. Parser is transparent to GridView — output
  * is identical shape to what JSON-based cards produce.
  *
- * SUPPORTED CARD TYPES (23):
+ * SUPPORTED CARD TYPES (32):
  *   Flat:      stat · callout · person-card · relationship-card
  *              incident-card · info-card · country-card · avatar-prompt
+ *              circular-gauge · progress-bar · level-meter · path-track
+ *              trend-line · job-card · learning-card
  *   Container: kpi-strip · metric-list · bullet-list · alert · timeline
  *              checklist · pipeline · ranked-list · bar-chart · donut
  *              waterfall · line-chart · org-roster · delegation-card
@@ -67,6 +69,13 @@ export const DSL_SCHEMA: Record<string, { pipeCount: number; fields: string[] }>
     'info-card':         { pipeCount: 5, fields: ['icon','title','body','cta','ctaPhrase'] },
     'country-card':      { pipeCount: 7, fields: ['country','flag','revenue','employees','politicalRisk','relationshipHealth','keyContact'] },
     'avatar-prompt':     { pipeCount: 5, fields: ['question','showProgress','progressStep','progressTotal','wide'] },
+    'circular-gauge':    { pipeCount: 4, fields: ['title','percentage','accent','subtitle'] },
+    'progress-bar':      { pipeCount: 5, fields: ['title','label','percent','subtitle','showPercentage'] },
+    'level-meter':       { pipeCount: 6, fields: ['title','label','current','target','segments','subtitle'] },
+    'path-track':        { pipeCount: 6, fields: ['title','label','percentage','fromLabel','toLabel','subtitle'] },
+    'trend-line':        { pipeCount: 4, fields: ['title','data','showLabels','subtitle'] },
+    'job-card':          { pipeCount: 8, fields: ['title','jobTitle','company','location','salaryRange','matchScore','aiSummary','saved'] },
+    'learning-card':     { pipeCount: 8, fields: ['title','courseTitle','currentLevel','targetLevel','levelLabel','type','progress','duration'] },
     // Container headers
     'kpi-strip':         { pipeCount: 0, fields: [] },
     'metric-list':       { pipeCount: 1, fields: ['title'] },
@@ -115,6 +124,8 @@ export const DSL_SCHEMA: Record<string, { pipeCount: number; fields: string[] }>
     'crow':              { pipeCount: -1, fields: ['val1','val2','...'] },
     'heatmap':           { pipeCount: 2, fields: ['title','cols (semicolon-delimited)'] },
     'hrow':              { pipeCount: -1, fields: ['rowLabel','val1','val2','...'] },
+    'dotitem':           { pipeCount: 4, fields: ['label','filled','target','value'] },
+    'skill':             { pipeCount: 4, fields: ['name','currentLevel','targetLevel','evidence'] },
 };
 
 // ── Container → item prefix map ───────────────────────────────────────────────
@@ -142,6 +153,8 @@ const CONTAINER_ITEM_PREFIXES: Record<string, string> = {
     'table':             'trow',
     'comparison-table':  'crow',
     'heatmap':           'hrow',
+    'dot-plot':          'dotitem',
+    'skill-card':        'skill',
 };
 
 const CONTAINER_TYPES   = new Set(Object.keys(CONTAINER_ITEM_PREFIXES));
@@ -149,6 +162,8 @@ const ALL_ITEM_PREFIXES = new Set(Object.values(CONTAINER_ITEM_PREFIXES));
 const FLAT_TYPES        = new Set([
     'stat', 'callout', 'person-card', 'relationship-card',
     'incident-card', 'info-card', 'country-card', 'image-card', 'avatar-prompt',
+    'circular-gauge', 'progress-bar', 'level-meter', 'path-track', 'trend-line',
+    'job-card', 'learning-card',
 ]);
 
 // ── Item parsers ──────────────────────────────────────────────────────────────
@@ -277,6 +292,24 @@ function parseItem(prefix: string, fields: string[]): Record<string, any> | null
             const [rowLabel, ...vals] = fields;
             return { rowLabel: n(rowLabel) ?? '', values: vals.map(v => f(v)) };
         }
+        case 'dotitem': {
+            const [label, filledStr, targetStr, value] = fields;
+            return { 
+                label: n(label) ?? '', 
+                filled: parseInt(n(filledStr) ?? '0', 10) || 0,
+                target: parseInt(n(targetStr) ?? '0', 10) || 0,
+                value: n(value)
+            };
+        }
+        case 'skill': {
+            const [name, currentStr, targetStr, evidence] = fields;
+            return {
+                name: n(name) ?? '',
+                currentLevel: parseInt(n(currentStr) ?? '0', 10) || 0,
+                targetLevel: parseInt(n(targetStr) ?? '0', 10) || 0,
+                evidence: n(evidence)
+            };
+        }
         default:
             return null;
     }
@@ -334,6 +367,92 @@ function parseFlatCard(type: string, fields: string[], span?: 'full'): CardDef |
             }
             if (n(wideStr) !== undefined) card.questionWide = b(wideStr);
             return card;
+        }
+        case 'circular-gauge': {
+            const [title, percentageStr, accent, subtitle] = fields;
+            Object.assign(card, { title: n(title), subtitle: n(subtitle) });
+            if (n(percentageStr) !== undefined) {
+                card.percentage = parseInt(n(percentageStr) ?? '0', 10) || 0;
+            }
+            if (n(accent) !== undefined) card.accent = n(accent);
+            return card;
+        }
+        case 'progress-bar': {
+            const [title, label, percentStr, subtitle, showPercentageStr] = fields;
+            Object.assign(card, { 
+                title: n(title), 
+                label: n(label), 
+                subtitle: n(subtitle),
+                percent: parseInt(n(percentStr) ?? '0', 10) || 0
+            });
+            if (n(showPercentageStr) !== undefined) card.showPercentage = b(showPercentageStr);
+            return card;
+        }
+        case 'level-meter': {
+            const [title, label, currentStr, targetStr, segmentsStr, subtitle] = fields;
+            Object.assign(card, { 
+                title: n(title), 
+                label: n(label), 
+                subtitle: n(subtitle),
+                current: parseInt(n(currentStr) ?? '0', 10) || 0,
+                target: parseInt(n(targetStr) ?? '0', 10) || 0
+            });
+            if (n(segmentsStr) !== undefined) {
+                card.segments = parseInt(n(segmentsStr) ?? '5', 10) || 5;
+            }
+            return card;
+        }
+        case 'path-track': {
+            const [title, label, percentageStr, fromLabel, toLabel, subtitle] = fields;
+            return Object.assign(card, {
+                title: n(title),
+                label: n(label),
+                percentage: parseInt(n(percentageStr) ?? '0', 10) || 0,
+                fromLabel: n(fromLabel),
+                toLabel: n(toLabel),
+                subtitle: n(subtitle)
+            });
+        }
+        case 'trend-line': {
+            const [title, dataStr, showLabelsStr, subtitle] = fields;
+            let data = [];
+            try {
+                data = JSON.parse(n(dataStr) ?? '[]');
+            } catch {
+                data = [];
+            }
+            return Object.assign(card, {
+                title: n(title),
+                data,
+                showLabels: b(showLabelsStr),
+                subtitle: n(subtitle)
+            });
+        }
+        case 'job-card': {
+            const [title, jobTitle, company, location, salaryRange, matchScoreStr, aiSummary, savedStr] = fields;
+            return Object.assign(card, {
+                title: n(title),
+                jobTitle: n(jobTitle) ?? '',
+                company: n(company) ?? '',
+                location: n(location) ?? '',
+                salaryRange: n(salaryRange) ?? '',
+                matchScore: parseInt(n(matchScoreStr) ?? '0', 10) || 0,
+                aiSummary: n(aiSummary) ?? '',
+                saved: b(savedStr)
+            });
+        }
+        case 'learning-card': {
+            const [title, courseTitle, currentStr, targetStr, levelLabel, type, progressStr, duration] = fields;
+            return Object.assign(card, {
+                title: n(title),
+                courseTitle: n(courseTitle) ?? '',
+                currentLevel: parseInt(n(currentStr) ?? '0', 10) || 0,
+                targetLevel: parseInt(n(targetStr) ?? '0', 10) || 0,
+                levelLabel: n(levelLabel) ?? '',
+                type: n(type) || 'reading',
+                progress: parseInt(n(progressStr) ?? '0', 10) || 0,
+                duration: n(duration)
+            });
         }
         default:
             return null;
@@ -505,6 +624,14 @@ function flushContainer(
                     value: v,
                 }))
             );
+            break;
+        }
+        case 'dot-plot': {
+            card.items = items;
+            break;
+        }
+        case 'skill-card': {
+            card.skills = items;
             break;
         }
     }

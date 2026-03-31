@@ -39,7 +39,7 @@ export default function RootLayout({
         <VoiceSessionProvider>
           <BackgroundLayer />
           <div id="scene-root" className="relative z-[2] lg:h-dvh">
-            <SceneLayout>{children}</SceneLayout>
+            {children}
           </div>
           <ControlBar />
           <ChatPanel />

@@ -28,6 +28,19 @@ export { ImageCard } from './ImageCard';
 // Flow / avatar layer (1)
 export { AvatarPromptCard } from './AvatarPromptCard';
 
+// Additional Chart Components (7)
+export { CircularGaugeCard } from './CircularGaugeCard';
+export { ProgressBarCard } from './ProgressBarCard';
+export { LevelMeterCard } from './LevelMeterCard';
+export { PathTrackCard } from './PathTrackCard';
+export { DotPlotCard } from './DotPlotCard';
+export { TrendLineCard } from './TrendLineCard';
+
+// Job & Learning Components (3)
+export { JobCard } from './JobCard';
+export { LearningCard } from './LearningCard';
+export { SkillCard } from './SkillCard';
+
 // Comparison (2)
 export { ComparisonTable } from './ComparisonTable';
 export { RankedListCard } from './RankedListCard';

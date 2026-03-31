@@ -24,10 +24,15 @@ import {
     RelationshipCard, CountryCard, DataClusterCard, CalendarCard,
     // Flow (1)
     AvatarPromptCard,
+    // Additional Charts (6)
+    CircularGaugeCard, ProgressBarCard, LevelMeterCard,
+    PathTrackCard, DotPlotCard, TrendLineCard,
+    // Job & Learning (3)
+    JobCard, LearningCard, SkillCard,
 } from '@/components/cards';
 
 /* ═══════════════════════════════════════════════════════════
-   GridView — Composable Grid Template (31 Card Types)
+   GridView — Composable Grid Template (40 Card Types)
    
    A single template that accepts a layout code and an array
    of card definitions. The tele fills it dynamically for any
@@ -87,6 +92,15 @@ const CARD_MAP: Record<string, React.FC<any>> = {
     'data-cluster': DataClusterCard,
     'calendar': CalendarCard,
     'avatar-prompt': AvatarPromptCard,
+    'circular-gauge': CircularGaugeCard,
+    'progress-bar': ProgressBarCard,
+    'level-meter': LevelMeterCard,
+    'path-track': PathTrackCard,
+    'dot-plot': DotPlotCard,
+    'trend-line': TrendLineCard,
+    'job-card': JobCard,
+    'learning-card': LearningCard,
+    'skill-card': SkillCard,
     // Aliases — common hallucinated type names
     'profile-roster': OrgRoster,
     'area-chart': LineChart,
@@ -115,6 +129,9 @@ const CARD_SIZE: Record<string, number> = {
     // Cross-Domain Intelligence
     'relationship-card': 2, 'country-card': 2,
     'avatar-prompt': 2,
+    'circular-gauge': 2, 'progress-bar': 2, 'level-meter': 2,
+    'path-track': 2, 'dot-plot': 2, 'trend-line': 2,
+    'job-card': 3, 'learning-card': 2, 'skill-card': 2,
 };
 
 function getRowWeight(rowCards: CardDef[]): number {
@@ -469,7 +486,7 @@ export const GridView: React.FC<GridViewProps> = ({
                 `[UNKNOWN CARD TYPE] ${unknownTypes.map(t => `"${t}"`).join(', ')} — rendered as blank slot(s). ` +
                 `Check spelling. Valid: stat, callout, kpi-strip, metric-list, bullet-list, ` +
                 `bar-chart, donut, timeline, checklist, pipeline, ranked-list, person-card, alert, ` +
-                `info-card, table, incident-card, relationship-card, country-card, image-card, avatar-prompt.`
+                `info-card, table, incident-card, relationship-card, country-card, image-card, avatar-prompt, circular-gauge, progress-bar, level-meter, path-track, dot-plot, trend-line, job-card, learning-card, skill-card.`
             );
         }
     }, [layout, cards.length, isHybrid, rows, clampCount, resolvedLayout]);
