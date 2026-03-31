@@ -45,6 +45,12 @@ export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
   const loadCountRef = useRef(0);
   const prevIdRef = useRef<string>("");
 
+  console.log('DynamicSectionLoader render:', {
+    sectionsCount: sections.length,
+    sections: sections,
+    current: current
+  });
+
   useEffect(() => {
     if (!current) return;
 
@@ -72,7 +78,10 @@ export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
     );
   }, [current?.templateId]);
 
-  if (sections.length === 0) return null;
+  if (sections.length === 0) {
+    console.log('DynamicSectionLoader: No sections to render');
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -106,7 +115,7 @@ export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
             <div
               key={section.id}
               data-testid={`section-${section.templateId}`}
-              className="absolute inset-0"
+              className="absolute inset-0 z-20"
             >
               <ErrorBoundary fallback={<div className="w-full h-full" />}>
                 <Suspense fallback={<div className="w-full h-full" />}>
@@ -125,7 +134,7 @@ export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="absolute inset-0"
+            className="absolute inset-0 z-20"
           >
             <ErrorBoundary fallback={<div className="w-full h-full" />}>
               <Suspense fallback={<div className="w-full h-full" />}>

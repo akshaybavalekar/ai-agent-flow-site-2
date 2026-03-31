@@ -35,16 +35,17 @@ export function usePhaseFlow() {
         if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
           const payload = args[0] as any;
           
-          if (payload.generativeSubsections && Array.isArray(payload.generativeSubsections)) {
-            const sections = payload.generativeSubsections.map((section: any, index: number) => ({
-              id: section.id || `${section.templateId}-${Date.now()}-${index}`,
-              templateId: section.templateId,
-              props: section.props || {}
-            }));
-            
-            setGenerativeSections(sections);
-            return true;
-          }
+        if (payload.generativeSubsections && Array.isArray(payload.generativeSubsections)) {
+          const sections = payload.generativeSubsections.map((section: any, index: number) => ({
+            id: section.id || `${section.templateId}-${Date.now()}-${index}`,
+            templateId: section.templateId,
+            props: section.props || {}
+          }));
+          
+          console.log('Setting new sections:', sections);
+          setGenerativeSections(sections);
+          return true;
+        }
           
           if (payload.templateId) {
             const newSection: GenerativeSection = {
@@ -69,6 +70,8 @@ export function usePhaseFlow() {
 
   // Patch UIFrameworkSiteFunctions so the voice AI can call navigateToSection
   useEffect(() => {
+    console.log('usePhaseFlow: Setting up UIFrameworkSiteFunctions...');
+    
     const siteFns = (
       window as unknown as {
         UIFrameworkSiteFunctions?: Record<string, unknown>;
@@ -76,12 +79,14 @@ export function usePhaseFlow() {
     ).UIFrameworkSiteFunctions;
 
     if (!siteFns || typeof siteFns !== "object") {
+      console.log('Creating new UIFrameworkSiteFunctions object');
       (window as any).UIFrameworkSiteFunctions = {};
     }
 
     (window as any).UIFrameworkSiteFunctions.navigateToSection = navigateToSection;
 
-    console.log('Patched UIFrameworkSiteFunctions.navigateToSection');
+    console.log('Patched UIFrameworkSiteFunctions.navigateToSection:', navigateToSection);
+    console.log('Window object now has:', (window as any).UIFrameworkSiteFunctions);
   }, [navigateToSection]);
 
   return { generativeSubsections };

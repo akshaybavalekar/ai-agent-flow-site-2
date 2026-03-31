@@ -47,17 +47,15 @@ export function SceneLayout({ children }: { children: React.ReactNode }) {
   const sceneActive = useVoiceSessionStore((s) => s.sceneActive);
   const skeletonLayout = useVoiceSessionStore((s) => s.skeletonLayout);
 
-  // Show SceneManager when scene is active OR when there's content to show
-  const showScene = sceneActive || currentScene || skeletonLayout;
+  console.log('SceneLayout render:', { currentScene, sceneActive, skeletonLayout });
 
+  // Always show children (which includes our template system)
   return (
     <>
       <SceneKeyboardNav />
-      {showScene ? (
-        <SceneManager />
-      ) : (
-        children
-      )}
+      <div style={{ position: 'relative', zIndex: 10, height: '100vh', width: '100vw' }}>
+        {children}
+      </div>
     </>
   );
 }

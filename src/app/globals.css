@@ -53,6 +53,10 @@
     --text-muted: #d4d4d8;
     --text-subtle: rgba(255, 255, 255, 0.5);
     --accent: #1dc558;
+    
+    /* Avatar video filters */
+    --theme-video-brightness: 1.1;
+    --theme-video-saturate: 1.2;
     --accent-strong: #1ed25e;
     --accent-light: #a5e8bc;
     --accent-contrast: #18181b;

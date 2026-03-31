@@ -12,12 +12,16 @@ import { useEffect } from 'react';
 export function WelcomeLanding() {
   // Simulate AI greeting flow following trainco journey-welcome.md
   useEffect(() => {
+    console.log('WelcomeLanding mounted, setting up navigation timer...');
+    
     const timer = setTimeout(() => {
+      console.log('Timer fired, checking for UIFrameworkSiteFunctions...');
       const siteFns = (window as any).UIFrameworkSiteFunctions;
+      console.log('UIFrameworkSiteFunctions:', siteFns);
+      
       if (siteFns?.navigateToSection) {
-        console.log('Simulating AI Step 1 (Greeting) from journey-welcome...');
-        // Following the trainco greeting flow
-        siteFns.navigateToSection({
+        console.log('Calling navigateToSection with GlassmorphicOptions...');
+        const result = siteFns.navigateToSection({
           badge: "trAIn CAREER",
           title: "Welcome",
           subtitle: "Let's get started",
@@ -34,10 +38,16 @@ export function WelcomeLanding() {
             }
           }]
         });
+        console.log('navigateToSection result:', result);
+      } else {
+        console.error('navigateToSection not available!');
       }
-    }, 3000);
+    }, 1000); // Reduced to 1 second for testing
 
-    return () => clearTimeout(timer);
+    return () => {
+      console.log('WelcomeLanding unmounting, clearing timer');
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -52,7 +62,7 @@ export function WelcomeLanding() {
       <div className="text-white/60 text-center px-4">
         <p className="text-lg mb-2">Welcome to trAIn</p>
         <p className="text-sm">Your AI career assistant is connecting...</p>
-        <p className="text-xs mt-4 opacity-50">Navigation will happen automatically in 3 seconds...</p>
+        <p className="text-xs mt-4 opacity-50">Navigation will happen automatically in 1 second...</p>
       </div>
     </div>
   );
