@@ -1,3 +1,5 @@
+'use client';
+
 import React, { Suspense, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { GenerativeSection } from "@/types/flow";

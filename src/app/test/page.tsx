@@ -1,3 +1,5 @@
+'use client';
+
 import { GridView } from '@/components/cards/GridView';
 
 export default function TestPage() {
