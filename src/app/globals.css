@@ -336,6 +336,51 @@
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
+
+  /* Start button for voice connection */
+  .start-button {
+    background: var(--accent);
+    color: #18181b;
+    padding: 12px 24px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 24px rgba(29, 197, 88, 0.3);
+  }
+
+  .start-button:hover {
+    background: var(--accent-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 32px rgba(29, 197, 88, 0.4);
+  }
+
+  .start-button:active {
+    transform: translateY(0);
+  }
+
+  .start-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .connecting-pulse {
+    animation: connecting-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes connecting-pulse {
+    0%, 100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 }
 
 .solid-bg-deep {

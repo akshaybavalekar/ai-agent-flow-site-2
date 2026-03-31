@@ -22,16 +22,16 @@ export default function Home() {
     setJourney("connecting");
     
     try {
-      // Start the voice connection
-      await connect();
+      // Show connecting screen for a minimum time
+      const connectPromise = connect();
+      const minTimePromise = new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mount TalentApp immediately (this initializes the template system)
+      // Wait for both connection and minimum display time
+      await Promise.all([connectPromise, minTimePromise]);
+      
+      // Mount TalentApp (this initializes the template system)
       setJourney("talent");
-      
-      // Hide connecting screen after a brief delay
-      setTimeout(() => {
-        setShowConnecting(false);
-      }, 1500);
+      setShowConnecting(false);
     } catch (error) {
       console.error('Connection failed:', error);
       setJourney("landing");
@@ -52,6 +52,9 @@ export default function Home() {
         {journey === "landing" && (
           <EntryPoint key="landing" onBegin={handleBegin} />
         )}
+        {journey === "connecting" && (
+          <ConnectingScreen key="connecting" />
+        )}
         {journey === "talent" && (
           <motion.div
             key="talent"
@@ -65,7 +68,10 @@ export default function Home() {
         )}
       </AnimatePresence>
       
-      {showConnecting && <ConnectingScreen key="connecting-overlay" />}
+      {/* Additional connecting overlay if needed */}
+      {showConnecting && journey !== "connecting" && (
+        <ConnectingScreen key="connecting-overlay" />
+      )}
     </>
   );
 }
