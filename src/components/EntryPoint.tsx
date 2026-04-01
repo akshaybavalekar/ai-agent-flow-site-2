@@ -102,10 +102,11 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
           onClick={handleOptionsClick}
           className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-base shadow-lg transition-transform active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           style={{
-            background: "rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.2)",
             color: "white",
-            border: "1px solid rgba(255,255,255,0.2)",
+            border: "2px solid rgba(255,255,255,0.4)",
             backdropFilter: "blur(10px)",
+            boxShadow: "0 4px 24px rgba(255,255,255,0.1)",
           }}
         >
           Options
