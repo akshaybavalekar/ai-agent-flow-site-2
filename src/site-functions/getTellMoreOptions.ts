@@ -7,36 +7,22 @@
  * The voice agent can call this via the callSiteFunction RPC.
  */
 export default function getTellMoreOptions(): {
+  id: string;
+  componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
+  options?: string;
   badge: string;
   title: string;
   subtitle: string;
-  generativeSubsections: Array<{
-    id: string;
-    templateId: string;
-    props: {
-      bubbles: Array<{ label: string }>;
-    };
-  }>;
+  progress?: { progressStep: number; progressTotal: number };
+  placeholder?: string;
+  error?: string;
 } {
   return {
+    id: "3847-B",
+    componentType: "GlassmorphicOptions",
+    options: "How does TrAIn work?|How is TrAIn different?|Can I build skills on TrAIn?|Which jobs can I find on TrAIn?|How does TrAIn use my data?|Something else",
     badge: "MOBEUS CAREER",
     title: "Welcome",
-    subtitle: "About TrAIn",
-    generativeSubsections: [
-      {
-        id: "tell-me-more",
-        templateId: "GlassmorphicOptions",
-        props: {
-          bubbles: [
-            { label: "How does TrAIn work?" },
-            { label: "How is TrAIn different?" },
-            { label: "Can I build skills on TrAIn?" },
-            { label: "Which jobs can I find on TrAIn?" },
-            { label: "How does TrAIn use my data?" },
-            { label: "Something else" }
-          ]
-        }
-      }
-    ]
+    subtitle: "About TrAIn"
   };
 }

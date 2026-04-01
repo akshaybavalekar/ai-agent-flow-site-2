@@ -7,38 +7,22 @@
  * The voice agent can call this via the callSiteFunction RPC.
  */
 export default function getExplorationOptions(): {
+  id: string;
+  componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
+  options?: string;
   badge: string;
   title: string;
   subtitle: string;
-  generativeSubsections: Array<{
-    id: string;
-    templateId: string;
-    props: {
-      bubbles: Array<{ label: string }>;
-      showProgress: boolean;
-    };
-  }>;
+  progress?: { progressStep: number; progressTotal: number };
+  placeholder?: string;
+  error?: string;
 } {
   return {
+    id: "5921-C",
+    componentType: "MultiSelectOptions",
+    options: "Solving a puzzle or problem|Creating something from scratch|Helping someone through a tough moment|Organising chaos into order|Learning something completely new|Leading a group",
     badge: "MOBEUS CAREER",
     title: "Exploration",
-    subtitle: "Tell us what you enjoy",
-    generativeSubsections: [
-      {
-        id: "exploration",
-        templateId: "MultiSelectOptions",
-        props: {
-          bubbles: [
-            { label: "Solving a puzzle or problem" },
-            { label: "Creating something from scratch" },
-            { label: "Helping someone through a tough moment" },
-            { label: "Organising chaos into order" },
-            { label: "Learning something completely new" },
-            { label: "Leading a group" }
-          ],
-          showProgress: false
-        }
-      }
-    ]
+    subtitle: "Tell us what you enjoy"
   };
 }

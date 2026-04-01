@@ -7,29 +7,22 @@
  * The voice agent can call this via the callSiteFunction RPC.
  */
 export default function getIndustryCustomInput(): {
+  id: string;
+  componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
+  options?: string;
   badge: string;
   title: string;
   subtitle: string;
-  generativeSubsections: Array<{
-    id: string;
-    templateId: string;
-    props: {
-      placeholder: string;
-    };
-  }>;
+  progress?: { progressStep: number; progressTotal: number };
+  placeholder?: string;
+  error?: string;
 } {
   return {
+    id: "5921-B",
+    componentType: "TextInput",
+    placeholder: "Type industry",
     badge: "MOBEUS CAREER",
     title: "Qualification",
-    subtitle: "Step 1 of 3",
-    generativeSubsections: [
-      {
-        id: "industry-custom",
-        templateId: "TextInput",
-        props: {
-          placeholder: "Type industry"
-        }
-      }
-    ]
+    subtitle: "Step 1 of 3"
   };
 }

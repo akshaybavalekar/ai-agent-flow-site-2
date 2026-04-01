@@ -7,33 +7,22 @@
  * The voice agent can call this via the callSiteFunction RPC.
  */
 export default function getGreetingOptions(): {
+  id: string;
+  componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
+  options?: string;
   badge: string;
   title: string;
   subtitle: string;
-  generativeSubsections: Array<{
-    id: string;
-    templateId: string;
-    props: {
-      bubbles: Array<{ label: string }>;
-    };
-  }>;
+  progress?: { progressStep: number; progressTotal: number };
+  placeholder?: string;
+  error?: string;
 } {
   return {
+    id: "3847-A",
+    componentType: "GlassmorphicOptions",
+    options: "Yes, I'm ready|Not just yet|Tell me more",
     badge: "MOBEUS CAREER",
     title: "Welcome",
-    subtitle: "Getting started",
-    generativeSubsections: [
-      {
-        id: "start",
-        templateId: "GlassmorphicOptions",
-        props: {
-          bubbles: [
-            { label: "Yes, I'm ready" },
-            { label: "Not just yet" },
-            { label: "Tell me more" }
-          ]
-        }
-      }
-    ]
+    subtitle: "Getting started"
   };
 }

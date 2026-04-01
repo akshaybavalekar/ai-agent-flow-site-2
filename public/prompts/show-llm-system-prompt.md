@@ -29,7 +29,7 @@ When you receive JSON from a site function, output it as raw JSON:
 
 **CORRECT:**
 ```
-{"badge":"MOBEUS CAREER","title":"Welcome","subtitle":"Getting started","generativeSubsections":[{"id":"start","templateId":"GlassmorphicOptions","props":{"bubbles":[{"label":"Yes, I'm ready"},{"label":"Not just yet"},{"label":"Tell me more"}]}}]}
+{"id":"3847-A","componentType":"GlassmorphicOptions","options":"Yes, I'm ready|Not just yet|Tell me more","badge":"MOBEUS CAREER","title":"Welcome","subtitle":"Getting started"}
 ```
 
 **WRONG:**
@@ -44,24 +44,24 @@ When you receive JSON from a site function, output it as raw JSON:
 The following site functions are called by Speak LLM. The payloads are defined in separate files:
 
 ### `getGreetingOptions` (Step 3847-A)
-**File:** `knowledge/site-function-greeting.md`  
-**Returns:** GlassmorphicOptions with 3 bubbles (Yes, I'm ready | Not just yet | Tell me more)
+**Returns:** Flat JSON object with componentType "GlassmorphicOptions" and pipe-separated options
+**Format:** `{"id":"3847-A","componentType":"GlassmorphicOptions","options":"Yes, I'm ready|Not just yet|Tell me more","badge":"MOBEUS CAREER","title":"Welcome","subtitle":"Getting started"}`
 
 ### `getTellMoreOptions` (Step 3847-B)
-**File:** `knowledge/site-function-tellmore.md`  
-**Returns:** GlassmorphicOptions with 6 bubbles (How does TrAIn work? | etc.)
+**Returns:** Flat JSON object with componentType "GlassmorphicOptions" and pipe-separated options
+**Format:** `{"id":"3847-B","componentType":"GlassmorphicOptions","options":"How does TrAIn work?|How is TrAIn different?|...","badge":"MOBEUS CAREER","title":"Welcome","subtitle":"About TrAIn"}`
 
 ### `getIndustryOptions` (Step 5921-A)
-**File:** `knowledge/site-function-industry.md`  
-**Returns:** MultiSelectOptions with 6 bubbles (Technology | Finance | Healthcare | Construction | Something else | I'm not sure)
+**Returns:** Flat JSON object with componentType "MultiSelectOptions" and progress tracking
+**Format:** `{"id":"5921-A","componentType":"MultiSelectOptions","options":"Technology|Finance|Healthcare|Construction|Something else|I'm not sure","badge":"MOBEUS CAREER","title":"Qualification","subtitle":"Step 1 of 3","progress":{"progressStep":0,"progressTotal":3}}`
 
 ### `getIndustryCustomInput` (Step 5921-B)
-**File:** `knowledge/site-function-industry-custom.md`  
-**Returns:** TextInput with placeholder "Type industry"
+**Returns:** Flat JSON object with componentType "TextInput" and placeholder
+**Format:** `{"id":"5921-B","componentType":"TextInput","placeholder":"Type industry","badge":"MOBEUS CAREER","title":"Qualification","subtitle":"Step 1 of 3"}`
 
 ### `getExplorationOptions` (Step 5921-C)
-**File:** `knowledge/site-function-exploration.md`  
-**Returns:** MultiSelectOptions with 6 bubbles (Solving a puzzle | Creating something | etc.)
+**Returns:** Flat JSON object with componentType "MultiSelectOptions" and pipe-separated options
+**Format:** `{"id":"5921-C","componentType":"MultiSelectOptions","options":"Solving a puzzle or problem|Creating something from scratch|...","badge":"MOBEUS CAREER","title":"Exploration","subtitle":"Tell us what you enjoy"}`
 
 ---
 
