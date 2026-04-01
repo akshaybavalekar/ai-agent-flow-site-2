@@ -117,33 +117,22 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
   welcomeJourneyTool: {
     fn: welcomeJourneyTool,
     description:
-      'Welcome Journey Tool for MOBEUS 2.0 - A consolidated tool for the entire welcome journey. ' +
-      'The Speak LLM calls this tool with different section IDs to access different sections. ' +
-      'Each section contains pipe-delimited options and metadata for the Show LLM to render. ' +
-      'Supports 19 static sections (greetings, industry qualification, roles, interests, priorities, registration) ' +
-      'and 1 dynamic section (4521-E) that generates custom industry roles based on user input. ' +
-      'Returns component data structure with componentType, options, badge, title, subtitle, progress, and placeholder.',
+      'Welcome Journey Tool for MOBEUS 2.0 - consolidated tool for the entire welcome journey with section-based data retrieval',
     schema: {
       type: 'object',
       properties: {
         sectionId: {
           type: 'string',
           description: 'Section ID to retrieve (e.g., "2194-A", "7483-A", "4521-E")',
-          enum: [
-            '2194-A', '2194-B', '7483-A', '7483-B', '7483-C',
-            '4521-A', '4521-B', '4521-C', '4521-D', '4521-E', '4521-F', '4521-G',
-            '4521-H', '4521-I', '4521-J', '4521-K',
-            '1657-A', '1657-B', '9183-A'
-          ]
         },
         customIndustry: {
           type: 'string',
-          description: 'Required for section 4521-E to generate dynamic role options (e.g., "Gaming", "Renewable Energy")'
-        }
+          description: 'Required for section 4521-E to generate dynamic role options',
+        },
       },
-      required: ['sectionId']
+      required: ['sectionId'],
     },
-    defaults: {}
+    defaults: {},
   },
 };
 

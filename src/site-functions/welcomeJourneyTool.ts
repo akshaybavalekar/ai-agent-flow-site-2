@@ -1,39 +1,25 @@
 /**
- * Welcome Journey Tool - MOBEUS 2.0
- * 
- * A consolidated tool for the entire welcome journey that provides data structures
- * for different sections based on section IDs. The Speak LLM calls this tool with
- * different IDs to access different sections, and each section contains pipe-delimited
- * options and metadata for the Show LLM to render.
- * 
- * Usage: Call with { sectionId: "2194-A", customIndustry?: "Gaming" }
- * Returns: Component data structure for Show LLM rendering
+ * welcomeJourneyTool — Welcome Journey Tool for MOBEUS 2.0
+ *
+ * @param args.sectionId - Section ID to retrieve (e.g., "2194-A", "7483-A", "4521-E")
+ * @param args.customIndustry - Required for section 4521-E to generate dynamic role options
+ *
+ * Registered as window.__siteFunctions.welcomeJourneyTool
+ * The voice agent can call this via the callSiteFunction RPC.
  */
 
-interface WelcomeJourneyArgs {
-  sectionId: string;
-  customIndustry?: string;
-}
-
-interface WelcomeJourneyResponse {
-  id: string;
+/**
+ * Static section data lookup table
+ */
+const STATIC_SECTIONS: Record<string, {
   componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
   options?: string;
   badge: string;
   title: string;
   subtitle: string;
-  progress?: {
-    progressStep: number;
-    progressTotal: number;
-  };
+  progress?: { progressStep: number; progressTotal: number };
   placeholder?: string;
-  error?: string;
-}
-
-/**
- * Static section data lookup table
- */
-const STATIC_SECTIONS: Record<string, Omit<WelcomeJourneyResponse, 'id'>> = {
+}> = {
   // GREETING SECTIONS
   "2194-A": {
     componentType: "GlassmorphicOptions",
@@ -237,10 +223,17 @@ function generateDynamicRoleOptions(customIndustry: string): string {
   return genericRoles.join("|") + "|Something else|I'm not sure";
 }
 
-/**
- * Main Welcome Journey Tool function
- */
-export default function welcomeJourneyTool(args: WelcomeJourneyArgs): WelcomeJourneyResponse {
+export default function welcomeJourneyTool(args: { sectionId: string; customIndustry?: string }): {
+  id: string;
+  componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
+  options?: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  progress?: { progressStep: number; progressTotal: number };
+  placeholder?: string;
+  error?: string;
+} {
   const { sectionId, customIndustry } = args;
 
   // Handle dynamic section 4521-E (Custom Industry Roles)
