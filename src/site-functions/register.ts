@@ -20,7 +20,6 @@
 
 import setTheme from './setTheme';
 import navigateToSection from './navigateToSection';
-import welcomeJourneyTool from './welcomeJourneyTool';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -51,19 +50,22 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
   setTheme: {
     fn: setTheme,
     description:
-      'Switch the website theme between light, dark, or system preference',
+      'Welcome Journey Tool for MOBEUS 2.0 - consolidated tool for the entire welcome journey with section-based data retrieval',
     schema: {
       type: 'object',
       properties: {
-        theme: {
+        sectionId: {
           type: 'string',
-          enum: ['light', 'dark', 'system'],
-          description: 'The theme to apply',
+          description: 'Section ID to retrieve (e.g., "2194-A", "7483-A", "4521-E")',
+        },
+        customIndustry: {
+          type: 'string',
+          description: 'Required for section 4521-E to generate dynamic role options',
         },
       },
-      required: ['theme'],
+      required: ['sectionId'],
     },
-    defaults: { theme: 'system' },
+    defaults: {},
   },
 
   navigateToSection: {
@@ -114,26 +116,6 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
     },
   },
 
-  welcomeJourneyTool: {
-    fn: welcomeJourneyTool,
-    description:
-      'Welcome Journey Tool for MOBEUS 2.0 - consolidated tool for the entire welcome journey with section-based data retrieval',
-    schema: {
-      type: 'object',
-      properties: {
-        sectionId: {
-          type: 'string',
-          description: 'Section ID to retrieve (e.g., "2194-A", "7483-A", "4521-E")',
-        },
-        customIndustry: {
-          type: 'string',
-          description: 'Required for section 4521-E to generate dynamic role options',
-        },
-      },
-      required: ['sectionId'],
-    },
-    defaults: {},
-  },
 };
 
 // ─── Window registration ────────────────────────────────────────────────────
