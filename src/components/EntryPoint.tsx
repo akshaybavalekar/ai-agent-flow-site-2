@@ -1,13 +1,33 @@
 'use client';
 
-import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { ArrowRight, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface EntryPointProps {
   onBegin: () => void;
 }
 
 export function EntryPoint({ onBegin }: EntryPointProps) {
+  const [showOptions, setShowOptions] = useState(false);
+  const [optionsData, setOptionsData] = useState<any>(null);
+
+  const handleOptionsClick = () => {
+    try {
+      // Call the getGreetingOptions site function
+      const fn = (window as any).__siteFunctions?.getGreetingOptions;
+      if (fn) {
+        const result = fn();
+        setOptionsData(result);
+        setShowOptions(true);
+        console.log('Options data:', result);
+      } else {
+        console.error('getGreetingOptions function not found');
+      }
+    } catch (error) {
+      console.error('Error calling getGreetingOptions:', error);
+    }
+  };
   return (
     <div
       className="relative w-screen h-[100svh] overflow-hidden flex flex-col"
@@ -58,7 +78,7 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
         </motion.div>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center pb-[calc(80px+env(safe-area-inset-bottom,0px))]">
+      <div className="relative z-10 flex flex-col items-center gap-4 pb-[calc(80px+env(safe-area-inset-bottom,0px))]">
         <motion.button
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -74,7 +94,76 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
           Begin
           <ArrowRight size={16} />
         </motion.button>
+
+        <motion.button
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          onClick={handleOptionsClick}
+          className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-base shadow-lg transition-transform active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          style={{
+            background: "rgba(255,255,255,0.1)",
+            color: "white",
+            border: "1px solid rgba(255,255,255,0.2)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          Options
+          <Settings size={16} />
+        </motion.button>
       </div>
+
+      {/* Options Modal */}
+      <AnimatePresence>
+        {showOptions && optionsData && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.8)" }}
+          onClick={() => setShowOptions(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="bg-white rounded-2xl p-6 m-4 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{optionsData.title}</h2>
+              <p className="text-gray-600">{optionsData.subtitle}</p>
+              <div className="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full mt-2">
+                {optionsData.badge}
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {optionsData.options?.split('|').map((option: string, index: number) => (
+                <button
+                  key={index}
+                  className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors"
+                  onClick={() => {
+                    console.log('Selected option:', option);
+                    setShowOptions(false);
+                  }}
+                >
+                  <span className="text-gray-900 font-medium">{option}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowOptions(false)}
+              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
