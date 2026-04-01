@@ -1,6 +1,7 @@
+'use client';
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 interface BaseSheetLayoutProps {
   testId: string;

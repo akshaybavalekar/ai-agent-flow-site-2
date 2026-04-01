@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Mic, MicOff, MessageCircle, X, ArrowRight } from 'lucide-react';
-import { useVoiceSessionStore } from '@/lib/stores/voice-session-store';
+import { useVoiceSessionStore } from '@/platform/stores/voice-session-store';
 import { assets } from '@/assets';
 import { playUISound, playGlassSound } from '@/utils/soundGenerator';
 
@@ -24,17 +24,17 @@ export function ControlBar() {
   const isConnecting = sessionState === 'connecting';
   const isIdle = sessionState === 'idle' || sessionState === 'error';
 
-  const isDark = true; // Always use dark theme for trainco
-  const iconColor = 'text-white/70 hover:text-white';
-  const iconBg = 'bg-white/10 hover:bg-white/20';
+  const isDark = theme === 'dark';
+  const iconColor = (!sceneActive || isDark) ? 'text-white/70 hover:text-white' : 'text-gray-600 hover:text-gray-900';
+  const iconBg = (!sceneActive || isDark) ? 'bg-white/10 hover:bg-white/20' : 'bg-black/5 hover:bg-black/10';
 
-  // Show TALK button immediately when idle
+  // Delay TALK button appearance by 2s
   useEffect(() => {
     if (isIdle) {
-      setShowTalkButton(true);
-    } else {
-      setShowTalkButton(false);
+      const timer = setTimeout(() => setShowTalkButton(true), 2000);
+      return () => clearTimeout(timer);
     }
+    setShowTalkButton(false);
   }, [isIdle]);
 
   const handleConnect = () => {

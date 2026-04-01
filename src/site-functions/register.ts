@@ -19,6 +19,7 @@
  */
 
 import setTheme from './setTheme';
+import navigateToSection from './navigateToSection';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,9 @@ export type SiteFunctionEntry = {
  * Each key is the camelCase function name that the agent will use to call it.
  * The discovery service reads this manifest on deployment to extract metadata
  * and validate schemas.
+ *
+ * Mobeus expects `site-functions/register.ts` at the **repo root** — that file
+ * re-exports this module so the dashboard can discover `setTheme` + `navigateToSection`.
  */
 export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
   setTheme: {
@@ -59,6 +63,54 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
       required: ['theme'],
     },
     defaults: { theme: 'system' },
+  },
+
+  navigateToSection: {
+    fn: navigateToSection,
+    description:
+      'navigateToSection (glass contract v2, English only). One root object: badge, title, subtitle, generativeSubsections — each subsection { id?, templateId, props, _update? }. ' +
+      'Each call replaces the screen except Dashboard stacks with ProfileSheet, job sheets, learning sheets, etc.; welcome greeting uses GlassmorphicOptions alone (no Dashboard). ' +
+      'On UI-transition turns: speak + this tool in the same response — never tool-only. TeleSpeechBubble is persistent; questions are spoken, not passed as props. ' +
+      'Wait for user signals after: GlassmorphicOptions, MultiSelectOptions, TextInput, RegistrationForm, CandidateSheet, CardStack, SavedJobsStack. ' +
+      '_update: true merges delta props into the matching id/templateId without full re-mount. Strict JSON (double quotes, no trailing commas, no comments); omit optional keys — never send null. ' +
+      'Reserved: _sessionEstablished (see agent-knowledge execution rule 8; frontend may strip). ' +
+      'Auto-inject — do NOT pass in props (frontend/cache fills): rawSkillProgression, rawJobs, rawMarketRelevance, rawCareerGrowth, requiredSkills, recommendedSkills, skillGaps, candidate name/title/experience/education. ' +
+      'CandidateSheet: pass only candidateId (frontend auto-injects the rest). JobDetailSheet: only jobId, title, company, fitCategory (frontend resolves the rest). SavedJobsStack: props.bubbles required (labels from search_knowledge / trainco_dashboard_payloads). ' +
+      'Corrections: [TEMPLATE ERROR] → resend full payload with valid templateId; [CORRECTION NEEDED] → _update: true with delta only; [REMINDER] → include navigateToSection when the turn requires UI. ' +
+      'Full journeys and UI payloads: public/prompts/speak-llm-system-prompt.md. CARDS DSL / GridView scenes: public/prompts/show-llm-system-prompt.md.',
+    schema: {
+      type: 'object',
+      description:
+        'Matches glass-prompt.md payload schema: badge, title, subtitle, generativeSubsections',
+      properties: {
+        badge: { type: 'string', description: 'Context label (e.g. trAIn CAREER)' },
+        title: { type: 'string', description: 'Main heading' },
+        subtitle: { type: 'string', description: 'Subheading' },
+        generativeSubsections: {
+          type: 'array',
+          description:
+            'Screen sections; each call typically replaces content unless paired Dashboard + sheet per glass rules',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'Stable section id for stacking / _update matching' },
+              templateId: {
+                type: 'string',
+                description:
+                  'Template: GlassmorphicOptions, MultiSelectOptions, TextInput, RegistrationForm, Dashboard, ProfileSheet, CardStack, SavedJobsStack, JobSearchSheet, JobDetailSheet, etc.',
+              },
+              props: { type: 'object', additionalProperties: true },
+              _update: {
+                type: 'boolean',
+                description: 'If true, merge props into existing section with same id/templateId',
+              },
+            },
+            required: ['templateId'],
+          },
+        },
+      },
+      required: ['badge', 'title', 'subtitle', 'generativeSubsections'],
+    },
   },
 };
 
@@ -82,7 +134,7 @@ declare global {
 export function registerSiteFunctions() {
   if (typeof window === 'undefined') return;
 
-  window.__siteFunctions = {};
+  window.__siteFunctions ??= {};
   for (const [name, entry] of Object.entries(siteFunctionManifest)) {
     window.__siteFunctions[name] = entry.fn;
   }

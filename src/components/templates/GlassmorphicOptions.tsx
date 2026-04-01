@@ -1,12 +1,18 @@
 'use client';
-
-import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-
-export interface BubbleOption {
-  label: string;
-  value?: string;
-}
+import { useState, useCallback, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { FloatingAnswerBubbles } from "@/components/FloatingAnswerBubbles";
+import { MiniProgress } from "@/components/MiniProgress";
+import { informTele } from "@/utils/teleUtils";
+import {
+  sendInvalidOptionVoiceIntent,
+  sendSelectionIntent,
+} from "@/utils/teleIntent";
+import { useSpeechGate } from "@/hooks/useSpeechGate";
+import { useSpeechFallbackNudge } from "@/hooks/useSpeechFallbackNudge";
+import { useVoiceTranscriptIntent } from "@/hooks/useVoiceTranscriptIntent";
+import { resolveBestVoiceMatch } from "@/utils/voiceMatch";
+import type { BubbleOption } from "@/components/FloatingAnswerBubbles";
 
 interface GlassmorphicOptionsProps {
   /** Answer bubble options. Required. */
@@ -20,8 +26,21 @@ interface GlassmorphicOptionsProps {
 }
 
 /**
- * Reusable options template — shows interactive bubble options.
- * The question text comes from the voice AI speech bubble.
+ * Reusable options template — replaces QualificationStep.
+ *
+ * The question text is NOT a prop: TeleSpeechBubble (always visible in BaseLayout)
+ * shows whatever the avatar is saying. This template only renders the interactive
+ * option bubbles below it.
+ *
+ * Selection flow (click or voice):
+ *   1. User taps OR says a bubble label aloud.
+ *   2. FloatingAnswerBubbles highlights the selected bubble (built-in).
+ *   3. Shared intent bridge sends `user selected: <label>` immediately.
+ *   4. After 500ms, the template fades itself out (self-dismiss).
+ *      The AI's next navigateToSection replaces it when ready.
+ *
+ * When bubbles become interactive (`ready` from useSpeechGate), we informTele once
+ * so Realtime waits for `user selected:` before calling navigateToSection again.
  */
 export function GlassmorphicOptions({
   bubbles = [],
@@ -30,145 +49,103 @@ export function GlassmorphicOptions({
   progressTotal = 4,
 }: GlassmorphicOptionsProps) {
   const [hasSelected, setHasSelected] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const waitForSelectionHintSentRef = useRef(false);
 
-  const handleSelect = useCallback((option: BubbleOption, index: number) => {
-    if (hasSelected) return;
-    
-    setHasSelected(true);
-    setSelectedIndex(index);
-    
-    // Simulate sending selection to voice AI
-    console.log(`User selected: ${option.label}`);
-    
-    // Navigate based on selection following trainco flow
-    setTimeout(() => {
-      const siteFns = (window as any).UIFrameworkSiteFunctions;
-      if (siteFns?.navigateToSection) {
-        
-        if (option.label.includes("ready to start")) {
-          // Step 2: Industry qualification
-          console.log('Navigating to Industry MultiSelect...');
-          siteFns.navigateToSection({
-            badge: "trAIn CAREER",
-            title: "Industry",
-            subtitle: "Which industries interest you?",
-            generativeSubsections: [{
-              id: "industry",
-              templateId: "MultiSelectOptions",
-              props: {
-                bubbles: [
-                  { label: "Technology" },
-                  { label: "Finance" },
-                  { label: "Healthcare" },
-                  { label: "Education" },
-                  { label: "Manufacturing" },
-                  { label: "Something else" },
-                  { label: "I'm not sure" }
-                ],
-                showProgress: true,
-                progressStep: 0,
-                progressTotal: 3
-              }
-            }]
-          });
-        } else if (option.label.includes("Tell me more")) {
-          // Tell me more branch
-          console.log('Navigating to Tell Me More options...');
-          siteFns.navigateToSection({
-            badge: "trAIn CAREER", 
-            title: "About trAIn",
-            subtitle: "What would you like to know?",
-            generativeSubsections: [{
-              id: "tell-me-more",
-              templateId: "GlassmorphicOptions",
-              props: {
-                bubbles: [
-                  { label: "How does job matching work?" },
-                  { label: "What skills can I develop?" },
-                  { label: "How do I get started?" },
-                  { label: "What makes trAIn different?" },
-                  { label: "Something else" }
-                ]
-              }
-            }]
-          });
-        } else {
-          // Default to dashboard for other options
-          console.log('Navigating to Dashboard...');
-          siteFns.navigateToSection({
-            templateId: "Dashboard",
-            props: {}
-          });
-        }
+  const { ready, dismissed, setDismissed } = useSpeechGate({
+    hasInteracted: hasSelected,
+    /* Let the avatar finish the question before showing taps (was 250ms — too easy to bundle with model follow-up). */
+    silenceMs: 850,
+    dismissSilenceMs: 120_000,
+    /* LiveAvatar can hold agentState "speaking" for the whole line — without this, bubbles never mount. */
+    maxReadyWaitMs: 2800,
+  });
+
+  useEffect(() => {
+    if (!ready || dismissed || waitForSelectionHintSentRef.current) return;
+    waitForSelectionHintSentRef.current = true;
+    informTele(
+      "[SYSTEM] GlassmorphicOptions: answer bubbles are on screen and pointer-events are enabled. " +
+        "Do NOT call navigateToSection or advance to the next journey step until the user selects one option. " +
+        "You will receive `user selected: <label>` via TellTele when they tap a bubble or speak a matching label. " +
+        "Until then, stay silent or give at most one short acknowledgment if the user speaks off-script — " +
+        "do not ask the next interview question (e.g. industry) or narrate the next screen."
+    );
+  }, [ready, dismissed]);
+
+  const handleSelect = useCallback(
+    (option: BubbleOption) => {
+      if (hasSelected || dismissed) return;
+      setHasSelected(true);
+      setSelectedLabel(option.value ?? option.label);
+      const label = option.value ?? option.label;
+      void sendSelectionIntent(label);
+      console.log("USER SELECTED:", label);
+      setTimeout(() => setDismissed(true), 500);
+    },
+    [hasSelected, dismissed, setDismissed],
+  );
+
+  useSpeechFallbackNudge({
+    enabled: !hasSelected,
+    requiredPhrases: ["?", "industry", "choose", "interested", "ready", "journey", "role", "priority"],
+    matchMode: "any",
+    instruction:
+      "[CORRECTION] You called navigateToSection but did NOT speak. " +
+      "Trigger ONLY the missing part: speak the transition phrase NOW (1 short sentence). " +
+      "Do NOT read option labels aloud — speak only the question or acknowledgment; options are shown on screen. Do NOT repeat or re-call navigateToSection.",
+    instructionForMissingNavigate:
+      "[CORRECTION] The user has selected an option (check TellTele for `user selected:`). " +
+      "Trigger ONLY the missing part: call navigateToSection with the next step payload NOW. " +
+      "Do NOT speak again before calling the tool. Do NOT list or read options.",
+    enableNavigateCheck: hasSelected,
+    delayMs: 3000,
+  });
+
+  useVoiceTranscriptIntent({
+    enabled: !hasSelected && !dismissed,
+    onTranscript: (transcript) => {
+      const match = resolveBestVoiceMatch(transcript, bubbles);
+      if (match) {
+        handleSelect(match);
+      } else {
+        void sendInvalidOptionVoiceIntent();
       }
-    }, 500);
-  }, [hasSelected]);
-
-  const total = Math.max(1, progressTotal);
-  const activeCount = Math.min(Math.max(0, progressStep + 1), total);
+    },
+  });
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-end pointer-events-none">
-      {showProgress && (
-        <div
-          className="flex justify-center gap-1.5 w-full max-w-[200px] mb-8"
-          role="progressbar"
-          aria-valuenow={progressStep}
-          aria-valuemin={0}
-          aria-valuemax={total - 1}
+    <AnimatePresence>
+      {!dismissed && ready && (
+        <motion.div
+          key="glassmorphic-options"
+          data-testid="glassmorphic-options"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute inset-0"
         >
-          {Array.from({ length: total }, (_, i) => (
+          {showProgress && (
             <div
-              key={i}
-              className="h-1 flex-1 rounded-full transition-colors duration-200"
-              style={{
-                backgroundColor: i < activeCount 
-                  ? 'var(--theme-chart-line)' 
-                  : 'color-mix(in srgb, var(--theme-chart-line) 12%, transparent)',
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-3 w-full max-w-sm px-4 pb-32 pointer-events-auto">
-        <AnimatePresence>
-          {bubbles.map((option, index) => (
-            <motion.button
-              key={`${option.label}-${index}`}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0, 
-                scale: selectedIndex === index ? 0.95 : 1,
-              }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ 
-                duration: 0.3, 
-                delay: index * 0.1,
-                ease: [0.16, 1, 0.3, 1]
-              }}
-              onClick={() => handleSelect(option, index)}
-              disabled={hasSelected}
-              className={`
-                relative px-6 py-4 rounded-2xl text-left transition-all duration-200
-                backdrop-blur-sm border border-white/10
-                ${hasSelected && selectedIndex === index
-                  ? 'bg-white/20 border-white/30'
-                  : 'bg-white/10 hover:bg-white/15 hover:border-white/20'
-                }
-                ${hasSelected && selectedIndex !== index ? 'opacity-50' : ''}
-                disabled:cursor-not-allowed
-              `}
+              data-testid="glassmorphic-options-progress"
+              className="absolute left-1/2 -translate-x-1/2"
+              style={{ top: 20 }}
             >
-              <span className="text-white font-medium text-base">
-                {option.label}
-              </span>
-            </motion.button>
-          ))}
-        </AnimatePresence>
-      </div>
-    </div>
+              <MiniProgress step={progressStep} total={progressTotal} />
+            </div>
+          )}
+
+          <div data-testid="glassmorphic-options-bubbles" className="absolute inset-0 pointer-events-auto">
+            <FloatingAnswerBubbles
+              options={bubbles}
+              onSelect={handleSelect}
+              highlightedText={selectedLabel ?? undefined}
+              disabled={hasSelected}
+            />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

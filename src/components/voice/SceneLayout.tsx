@@ -1,6 +1,6 @@
 'use client';
 
-import { useVoiceSessionStore } from '@/lib/stores/voice-session-store';
+import { useVoiceSessionStore } from '@/platform/stores/voice-session-store';
 import { SceneManager } from '@/components/voice/SceneManager';
 import { useEffect } from 'react';
 
@@ -47,15 +47,17 @@ export function SceneLayout({ children }: { children: React.ReactNode }) {
   const sceneActive = useVoiceSessionStore((s) => s.sceneActive);
   const skeletonLayout = useVoiceSessionStore((s) => s.skeletonLayout);
 
-  console.log('SceneLayout render:', { currentScene, sceneActive, skeletonLayout });
+  // Show SceneManager when scene is active OR when there's content to show
+  const showScene = sceneActive || currentScene || skeletonLayout;
 
-  // Always show children (which includes our template system)
   return (
     <>
       <SceneKeyboardNav />
-      <div style={{ position: 'relative', zIndex: 10, height: '100vh', width: '100vw' }}>
-        {children}
-      </div>
+      {showScene ? (
+        <SceneManager />
+      ) : (
+        children
+      )}
     </>
   );
 }

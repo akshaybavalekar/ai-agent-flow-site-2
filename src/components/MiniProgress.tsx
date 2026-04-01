@@ -1,22 +1,26 @@
-import { cn } from "@/lib/utils";
+'use client';
 
 interface MiniProgressProps {
   step: number;
-  total?: number;
-  className?: string;
+  total: number;
 }
 
-export function MiniProgress({ step, total = 4, className = "" }: MiniProgressProps) {
+export function MiniProgress({ step, total }: MiniProgressProps) {
   return (
-    <div data-testid="mini-progress" className={cn("flex gap-[4px] w-[108px]", className)}>
-      {Array.from({ length: total }, (_, i) => (
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: total }).map((_, i) => (
         <div
           key={i}
-          data-testid={`mini-progress-step-${i}`}
-          className={cn(
-            "flex-1 h-2 rounded-full transition-colors duration-300",
-            i <= step ? "bg-[var(--accent-strong)]" : "bg-[var(--surface-muted)]"
-          )}
+          className="rounded-full transition-all duration-300"
+          style={{
+            width: i === step ? 16 : 6,
+            height: 6,
+            background: i === step
+              ? "var(--accent)"
+              : i < step
+              ? "var(--accent-muted)"
+              : "rgba(255,255,255,0.15)",
+          }}
         />
       ))}
     </div>

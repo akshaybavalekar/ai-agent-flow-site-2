@@ -1,32 +1,29 @@
 'use client';
 
-import { useCallback } from 'react';
-import { useVoiceSessionStore } from '@/lib/stores/voice-session-store';
+import { useCallback, type CSSProperties } from 'react';
+import { useVoiceSessionStore } from '@/platform/stores/voice-session-store';
 import { assets } from '@/assets';
 
+/**
+ * Full-viewport hero still + LiveKit avatar video. Mount once inside a
+ * `relative`/`isolate` shell (e.g. BaseLayout) so layers use z-0 — not z-index -1,
+ * which paints behind the shell’s background and disappears.
+ */
 export function BackgroundLayer() {
   const sessionState = useVoiceSessionStore((s) => s.sessionState);
   const agentState = useVoiceSessionStore((s) => s.agentState);
   const avatarVideoTrack = useVoiceSessionStore((s) => s.avatarVideoTrack);
-  const avatarEnabled = useVoiceSessionStore((s) => s.avatarEnabled);
   const avatarVisible = useVoiceSessionStore((s) => s.avatarVisible);
   const avatarThumbnailUrl = useVoiceSessionStore((s) => s.avatarThumbnailUrl);
 
   const isConnected = sessionState === 'connected';
   const isConnecting = sessionState === 'connecting';
   const showPulse = isConnecting || (isConnected && agentState === 'thinking');
-  const showAvatarVideo = avatarEnabled && avatarVisible && !!avatarVideoTrack;
+  // Show video when the worker publishes a track and the user hasn’t hidden the avatar.
+  // Do not require avatarEnabled — API defaults often leave it false while video is live.
+  const showAvatarVideo = avatarVisible && !!avatarVideoTrack;
+
   const bgImage = avatarThumbnailUrl || assets.backgroundHero;
-  
-  console.log('BackgroundLayer render:', {
-    sessionState,
-    isConnected,
-    isConnecting,
-    showAvatarVideo,
-    bgImage,
-    avatarEnabled,
-    avatarVisible
-  });
 
   const videoRef = useCallback(
     (el: HTMLVideoElement | null) => {
@@ -37,74 +34,63 @@ export function BackgroundLayer() {
     [avatarVideoTrack]
   );
 
+  const layerStyle: CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
+  };
+
   return (
-    <>
-      {/* Base hero background — fallback when avatar video is not active */}
+    <div
+      data-testid="background-layer"
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full min-h-0 overflow-hidden"
+    >
+      {/* Base hero — fallback when avatar video is not active */}
       <div
         style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1,
-          pointerEvents: 'none',
-          backgroundColor: '#1a2332', // Fallback background color
+          ...layerStyle,
+          zIndex: 0,
           backgroundImage: `url(${bgImage})`,
-          backgroundPosition: 'center center',
+          backgroundPosition: 'right top',
           backgroundRepeat: 'no-repeat',
           backgroundSize: 'cover',
-          minWidth: '100vw',
-          minHeight: '100vh',
-          opacity: showAvatarVideo ? 0.3 : 0.8, // Always show some background
-          filter: `brightness(1.2) saturate(1.1)`,
+          opacity: showAvatarVideo ? 0 : isConnected ? 1 : 0.8,
+          filter: `brightness(var(--theme-video-brightness)) saturate(var(--theme-video-saturate))`,
           transition: 'opacity 0.6s ease, filter 0.6s ease',
         }}
       />
 
-      {/* Avatar video — full viewport, visible through scene gradient AND chat panel */}
       {showAvatarVideo && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1,
-            pointerEvents: 'none',
-          }}
-        >
+        <div style={{ ...layerStyle, zIndex: 1 }}>
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
+            className="h-full w-full"
             style={{
-              width: '100%',
-              height: '100%',
               objectFit: 'cover',
-              objectPosition: 'center center',
-              filter: `brightness(1.2) saturate(1.1)`,
+              objectPosition: 'right center',
+              filter: `brightness(var(--theme-video-brightness)) saturate(var(--theme-video-saturate))`,
             }}
           />
         </div>
       )}
 
-      {/* Pulsing overlay — visible while connecting or thinking */}
       {showPulse && !showAvatarVideo && (
         <div
           className="hero-pulse-overlay"
           style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1,
-            pointerEvents: 'none',
-            backgroundColor: '#2a3441',
+            ...layerStyle,
+            zIndex: 2,
             backgroundImage: `url(${bgImage})`,
-            backgroundPosition: 'center center',
+            backgroundPosition: 'right top',
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
-            minWidth: '100vw',
-            minHeight: '100vh',
-            filter: `brightness(1.2) saturate(1.1)`,
+            filter: `brightness(var(--theme-video-brightness)) saturate(var(--theme-video-saturate))`,
           }}
         />
       )}
-    </>
+    </div>
   );
 }

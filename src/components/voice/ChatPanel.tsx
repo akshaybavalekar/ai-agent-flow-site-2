@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Send, Sparkles } from 'lucide-react';
-import { useVoiceSessionStore } from '@/lib/stores/voice-session-store';
+import { useVoiceSessionStore } from '@/platform/stores/voice-session-store';
 import { assets } from '@/assets';
 import { ToolCallIndicator } from './ToolCallIndicator';
 

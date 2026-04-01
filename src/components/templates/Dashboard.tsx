@@ -1,76 +1,93 @@
+'use client';
+import { useEffect, useMemo, useRef } from "react";
+import { motion } from "motion/react";
+import { useSpeechFallbackNudge } from "@/hooks/useSpeechFallbackNudge";
+import { informTele } from "@/utils/teleUtils";
+import { HAD_SESSION_AT_APP_START } from "@/utils/visitorMemory";
+import { useCurrentSection } from "@/contexts/CurrentSectionContext";
+
 /**
- * Main dashboard template - shows after user completes onboarding.
- * This is a placeholder that would show the user's profile, job matches, etc.
+ * Post-onboarding destination template.
+ *
+ * Renders the persistent DashboardBtn (top-left, Figma nodes 719:6374 / 719:6366).
+ * BaseLayout provides avatar, glow, gradient, BottomNav. The landing surface is
+ * ProfileSheet (id profile-home) — no floating begin-cta bubbles.
+ *
+ * The AI navigates here with ProfileSheet in a single navigateToSection call
+ * (or the frontend injects profile-home when only Dashboard is sent).
  */
+const DASHBOARD_TOP_TEMPLATES = new Set(["Dashboard", "ProfileSheet"]);
+
+let dashboardNudgeFiredThisSession = false;
+
 export function Dashboard() {
-  const testNavigation = (templateId: string) => {
-    const siteFns = (window as any).UIFrameworkSiteFunctions;
-    if (siteFns?.navigateToSection) {
-      console.log(`Testing navigation to ${templateId}...`);
-      
-      if (templateId === "GlassmorphicOptions") {
-        siteFns.navigateToSection({
-          templateId: "GlassmorphicOptions",
-          props: {
-            bubbles: [
-              { label: "Test Option 1" },
-              { label: "Test Option 2" },
-              { label: "Back to Dashboard" }
-            ],
-            showProgress: true,
-            progressStep: 1,
-            progressTotal: 3
-          }
-        });
-      } else {
-        siteFns.navigateToSection({
-          templateId,
-          props: {}
-        });
-      }
+  const { effectiveTemplateId } = useCurrentSection();
+  const nudgeFiredRef = useRef(dashboardNudgeFiredThisSession);
+
+  const isDashboardTop = useMemo(
+    () => DASHBOARD_TOP_TEMPLATES.has(effectiveTemplateId ?? ""),
+    [effectiveTemplateId],
+  );
+
+  const nudgeEnabled = isDashboardTop && !nudgeFiredRef.current;
+
+  useEffect(() => {
+    if (isDashboardTop && !dashboardNudgeFiredThisSession) {
+      dashboardNudgeFiredThisSession = true;
+      nudgeFiredRef.current = true;
     }
-  };
+  }, [isDashboardTop]);
+
+  useEffect(() => {
+    informTele(
+      "[SYSTEM] Dashboard mounted. Always respond in English only — never switch language based on the user's name or profile data."
+    );
+  }, []);
+
+  const isReturning = HAD_SESSION_AT_APP_START;
+
+  const dashboardLandingJson =
+    '{"badge":"trAIn CAREER","title":"Dashboard","subtitle":"Your Profile",' +
+    '"generativeSubsections":[{"id":"dashboard","templateId":"Dashboard","props":{}},' +
+    '{"id":"profile-home","templateId":"ProfileSheet","props":{"dashboardAnchor":true}}]}';
+
+  useSpeechFallbackNudge({
+    enabled: nudgeEnabled,
+    requiredPhrases: [
+      "tap this icon to access it at any time",
+      "this is your profile",
+      "here's your profile",
+    ],
+    instruction: isReturning
+      ? "[SYSTEM] Dashboard is visible but you have not spoken the required lines yet. " +
+        "Give the user a brief personalised insight about where they stand today — reference their Skill Coverage percentage, " +
+        "their Market Relevance score, and one concrete next step they should take (e.g. improve a skill gap, browse a new job opening, or follow up on an application). " +
+        "End by asking what they'd like to focus on. Keep it to 2–3 sentences. " +
+        "Do NOT call get_candidate, get_jobs_by_skills, or get_skill_progression from redundant tools — use navigateToSection with props when the prompt says to show profile/skills data. " +
+        "Do NOT deliver the ProfileSheet tutorial — that belongs exclusively in ProfileSheet. " +
+        "Include navigateToSection with EXACTLY: " + dashboardLandingJson
+      : "[SYSTEM] Dashboard is visible but you have not spoken the required lines yet. " +
+        "Your next response MUST include ALL of the following speech in order, in a SINGLE response:\n" +
+        '1. "Tap this icon to access it at any time."\n' +
+        '2. "This is your profile. Let\'s take a look."\n' +
+        '3. "Based on everything I know about you, I picked a Target Role you should grow towards. You may change this at any time."\n' +
+        '4. "Your Skill Coverage tells you how close you are to your Target Role."\n' +
+        '5. "Your Market Relevance measures how closely your skills align with market demands."\n' +
+        '6. "Your Career Growth measures how quickly your growth is turning into real opportunities."\n' +
+        '7. "You may tap on any of these to see more details, or you can ask me directly."\n' +
+        "Say ALL seven lines in one response. Do not stop early. Do not wait for user input between them. " +
+        "Include navigateToSection with EXACTLY: " + dashboardLandingJson,
+    delayMs: 1500,
+  });
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center">
-      <div className="text-center text-white px-4">
-        <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-        <p className="text-white/70 mb-8">Welcome to your career dashboard</p>
-        
-        <div className="grid grid-cols-1 gap-4 max-w-md mb-8">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <h3 className="font-semibold mb-2">Profile</h3>
-            <p className="text-sm text-white/70">Complete your profile to get better matches</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <h3 className="font-semibold mb-2">Job Matches</h3>
-            <p className="text-sm text-white/70">Discover opportunities tailored to your skills</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <h3 className="font-semibold mb-2">Skills</h3>
-            <p className="text-sm text-white/70">Track your skill development progress</p>
-          </div>
-        </div>
-
-        {/* Debug Navigation Buttons */}
-        <div className="flex flex-col gap-2 max-w-md">
-          <p className="text-xs text-white/50 mb-2">Test Navigation:</p>
-          <button 
-            onClick={() => testNavigation("WelcomeLanding")}
-            className="bg-blue-500/20 hover:bg-blue-500/30 px-4 py-2 rounded-lg text-sm transition-colors"
-          >
-            → WelcomeLanding
-          </button>
-          <button 
-            onClick={() => testNavigation("GlassmorphicOptions")}
-            className="bg-green-500/20 hover:bg-green-500/30 px-4 py-2 rounded-lg text-sm transition-colors"
-          >
-            → GlassmorphicOptions
-          </button>
-        </div>
-      </div>
-    </div>
+    <motion.div
+      data-testid="dashboard"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="absolute inset-0 pointer-events-none"
+    />
   );
 }

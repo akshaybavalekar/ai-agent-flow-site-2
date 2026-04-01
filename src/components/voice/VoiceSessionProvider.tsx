@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useVoiceSessionStore } from '@/lib/stores/voice-session-store';
+import { useVoiceSessionStore } from '@/platform/stores/voice-session-store';
 import { registerSiteFunctions } from '@/site-functions/register';
 
 interface VoiceSessionProviderProps {

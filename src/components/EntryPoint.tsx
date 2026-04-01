@@ -1,4 +1,6 @@
-import { motion } from "framer-motion";
+'use client';
+
+import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
 interface EntryPointProps {
@@ -11,7 +13,6 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
       className="relative w-screen h-[100svh] overflow-hidden flex flex-col"
       style={{ background: "var(--bg)" }}
     >
-      {/* Green radial background glow — matches Figma's coloured backdrop */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -34,7 +35,6 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
         }}
       />
 
-      {/* Logo + tagline — centered vertically */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -42,7 +42,6 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
           transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
           className="flex flex-col items-center gap-3 text-center"
         >
-          {/* trAIn wordmark */}
           <h1
             className="font-bold tracking-tight leading-none text-white select-none"
             style={{ fontSize: "clamp(72px, 22vw, 96px)" }}
@@ -50,7 +49,6 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
             tr<span style={{ color: "var(--accent-strong)" }}>AI</span>n
           </h1>
 
-          {/* Tagline */}
           <p
             className="text-lg sm:text-xl font-normal"
             style={{ color: "var(--text-muted)" }}
@@ -60,7 +58,6 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
         </motion.div>
       </div>
 
-      {/* Begin button — pinned near the bottom */}
       <div className="relative z-10 flex flex-col items-center pb-[calc(80px+env(safe-area-inset-bottom,0px))]">
         <motion.button
           initial={{ opacity: 0, y: 16 }}

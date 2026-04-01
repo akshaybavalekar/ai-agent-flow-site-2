@@ -1,6 +1,6 @@
 'use client';
 
-import { useVoiceSessionStore } from '@/lib/stores/voice-session-store';
+import { useVoiceSessionStore } from '@/platform/stores/voice-session-store';
 import { ArrowRight } from 'lucide-react';
 
 const agentName = process.env.NEXT_PUBLIC_AGENT_NAME || 'AI Assistant';

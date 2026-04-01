@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { SlideLayout } from '@/components/layout/SlideLayout';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -7,38 +5,24 @@ import { resolveFooters } from '@/utils/footerResolver';
 import { informTele } from '@/utils/informTele';
 import type { CardDef } from '@/types/cards';
 import {
-    // Core Data (9)
-    KPIStrip, BarChart, DonutChart, LineChart, TableCard,
-    MetricList, AlertCard, StatCard, CalloutCard,
-    // Data Visualization (4)
-    HeatmapCard, TimelineCard, WaterfallCard, StackedBarCard,
-    // People & Org (2)
-    PersonCard, OrgRoster,
-    // Rich Content (4)
-    ChecklistCard, InfoCard, BulletListCard, ImageCard,
-    // Comparison (2)
-    ComparisonTable, RankedListCard,
-    // Operational (3)
-    IncidentCard, PipelineCard, RiskMatrixCard,
-    // Executive Action (2)
-    DecisionCard, DelegationCard,
-    // Cross-Domain Intelligence (4)
-    RelationshipCard, CountryCard, DataClusterCard, CalendarCard,
-    // Flow (1)
-    AvatarPromptCard,
-    // Additional Charts (6)
-    CircularGaugeCard, ProgressBarCard, LevelMeterCard,
-    PathTrackCard, DotPlotCard, TrendLineCard,
-    // Job & Learning (3)
-    JobCard, LearningCard, SkillCard,
+    // Course & Learning (4)
+    CourseOverviewCard, CourseProgressCard, LearningPathCard, LessonCard,
+    // Content & Concepts (3)
+    ConceptCard, LessonSplitCard, ObjectivesCard,
+    // Practice & Assessment (3)
+    FlashcardCard, SkillQuizCard, SkillsAssessmentCard,
+    // Skills & Credentials (3)
+    SkillsProfileCard, CertificationsCard, StepCard,
+    // Progress & Celebration (3)
+    MilestoneCard, AchievementCard, CelebrationCard,
 } from '@/components/cards';
 
 /* ═══════════════════════════════════════════════════════════
-   GridView — Composable Grid Template (40 Card Types)
+   GridView — Composable Grid Template (16 Card Types)
    
    A single template that accepts a layout code and an array
    of card definitions. The tele fills it dynamically for any
-   executive perspective (CTO, CMO, CFO, HR, GC, AI, etc.).
+   training & learning context.
    ═══════════════════════════════════════════════════════════ */
 
 /* ═══ Types ═══ */
@@ -51,89 +35,49 @@ interface GridViewProps {
     onLogoClick?: () => void;
 }
 
-/* ═══ Card Renderer — 30 Card Types ═══ */
+/* ═══ Card Renderer — 16 Card Types ═══ */
 
 const CARD_MAP: Record<string, React.FC<any>> = {
-    // Core Data (9)
-    'kpi-strip': KPIStrip,
-    'bar-chart': BarChart,
-    'donut': DonutChart,
-    'line-chart': LineChart,
-    'table': TableCard,
-    'metric-list': MetricList,
-    'alert': AlertCard,
-    'stat': StatCard,
-    'callout': CalloutCard,
-    // Data Visualization (4)
-    'heatmap': HeatmapCard,
-    'timeline': TimelineCard,
-    'waterfall': WaterfallCard,
-    'stacked-bar': StackedBarCard,
-    // People & Organization (2)
-    'person-card': PersonCard,
-    'org-roster': OrgRoster,
-    // Rich Content (4)
-    'checklist': ChecklistCard,
-    'info-card': InfoCard,
-    'bullet-list': BulletListCard,
-    'image-card': ImageCard,
-    // Comparison (2)
-    'comparison-table': ComparisonTable,
-    'ranked-list': RankedListCard,
-    // Operational (3)
-    'incident-card': IncidentCard,
-    'pipeline-card': PipelineCard,
-    'pipeline': PipelineCard,       // alias — parseDSL emits 'pipeline', not 'pipeline-card'
-    'risk-matrix': RiskMatrixCard,
-    // Executive Action (2)
-    'decision-card': DecisionCard,
-    'delegation-card': DelegationCard,
-    // Cross-Domain Intelligence (4)
-    'relationship-card': RelationshipCard,
-    'country-card': CountryCard,
-    'data-cluster': DataClusterCard,
-    'calendar': CalendarCard,
-    'avatar-prompt': AvatarPromptCard,
-    'circular-gauge': CircularGaugeCard,
-    'progress-bar': ProgressBarCard,
-    'level-meter': LevelMeterCard,
-    'path-track': PathTrackCard,
-    'dot-plot': DotPlotCard,
-    'trend-line': TrendLineCard,
-    'job-card': JobCard,
-    'learning-card': LearningCard,
-    'skill-card': SkillCard,
-    // Aliases — common hallucinated type names
-    'profile-roster': OrgRoster,
-    'area-chart': LineChart,
-    'progress': BarChart,
+    // Course & Learning (4)
+    'course-overview':  CourseOverviewCard,
+    'course-progress':  CourseProgressCard,
+    'learning-path':    LearningPathCard,
+    'lesson':           LessonCard,
+    // Content & Concepts (3)
+    'concept-card':     ConceptCard,
+    'lesson-split':     LessonSplitCard,
+    'objectives':       ObjectivesCard,
+    // Practice & Assessment (3)
+    'flashcard':        FlashcardCard,
+    'skill-quiz':       SkillQuizCard,
+    'skills-assessment': SkillsAssessmentCard,
+    // Skills & Credentials (3)
+    'skills-profile':   SkillsProfileCard,
+    'certifications':   CertificationsCard,
+    'step-by-step':     StepCard,
+    // Progress & Celebration (3)
+    'milestone':        MilestoneCard,
+    'achievement':      AchievementCard,
+    'celebration':      CelebrationCard,
+    // Aliases
+    'lesson-carousel':  LessonCard,
+    'steps':            StepCard,
+    'quiz':             SkillQuizCard,
+    'skills':           SkillsProfileCard,
 };
 
 /* ═══ Card Size Tiers — flex-grow weights for row height distribution ═══ */
 
 const CARD_SIZE: Record<string, number> = {
-    // sm (compact) — strip only → flex-grow: 1
-    'kpi-strip': 1,
-    // md (standard) — stats, lists, moderate content → flex-grow: 2
-    'stat': 2, 'callout': 2,
-    'image-card': 2, 'person-card': 2,
-    'alert': 2, 'metric-list': 2,
-    'bullet-list': 2, 'info-card': 2,
-    'data-cluster': 2, 'checklist': 2, 'org-roster': 2,
-    'pipeline-card': 2, 'ranked-list': 2,
-    'timeline': 2, 'calendar': 2,
-    // lg (expansive) — charts, tables, maps → flex-grow: 3
-    'bar-chart': 3, 'donut': 3, 'line-chart': 3, 'table': 3,
-    'heatmap': 3, 'waterfall': 3, 'stacked-bar': 3,
-    'comparison-table': 3, 'incident-card': 3, 'risk-matrix': 3,
-    // Executive Action
-    'decision-card': 2, 'delegation-card': 2,
-    // Cross-Domain Intelligence
-    'relationship-card': 2, 'country-card': 2,
-    'avatar-prompt': 2,
-    'circular-gauge': 2, 'progress-bar': 2, 'level-meter': 2,
-    'path-track': 2, 'dot-plot': 2, 'trend-line': 2,
-    'job-card': 3, 'learning-card': 2, 'skill-card': 2,
+    // md (standard) — lists, concept cards → flex-grow: 2
+    'concept-card': 2, 'lesson-split': 2, 'objectives': 2,
+    'milestone': 2, 'achievement': 2, 'celebration': 2,
+    'certifications': 2, 'step-by-step': 2, 'steps': 2,
+    // lg (expansive) — course overviews, quizzes, skill profiles → flex-grow: 3
+    'course-overview': 3, 'course-progress': 3,
+    'learning-path': 3, 'lesson': 3, 'lesson-carousel': 3,
+    'flashcard': 3, 'skill-quiz': 3, 'quiz': 3,
+    'skills-assessment': 3, 'skills-profile': 3, 'skills': 3,
 };
 
 function getRowWeight(rowCards: CardDef[]): number {
@@ -488,7 +432,7 @@ export const GridView: React.FC<GridViewProps> = ({
                 `[UNKNOWN CARD TYPE] ${unknownTypes.map(t => `"${t}"`).join(', ')} — rendered as blank slot(s). ` +
                 `Check spelling. Valid: stat, callout, kpi-strip, metric-list, bullet-list, ` +
                 `bar-chart, donut, timeline, checklist, pipeline, ranked-list, person-card, alert, ` +
-                `info-card, table, incident-card, relationship-card, country-card, image-card, avatar-prompt, circular-gauge, progress-bar, level-meter, path-track, dot-plot, trend-line, job-card, learning-card, skill-card.`
+                `info-card, table, incident-card, relationship-card, country-card, image-card.`
             );
         }
     }, [layout, cards.length, isHybrid, rows, clampCount, resolvedLayout]);

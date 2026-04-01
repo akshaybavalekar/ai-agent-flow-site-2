@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+'use client';
+import { motion } from "motion/react";
 
 interface OverlayProps {
   modal?: false;
@@ -19,21 +20,6 @@ interface ModalProps {
 
 type BottomSheetProps = OverlayProps | ModalProps;
 
-/**
- * Shared bottom sheet primitive.
- *
- * Two variants:
- *
- * - **Overlay** (`modal={false}`, default) — `absolute inset-0 pointer-events-none`
- *   wrapper; the card floats at `bottom: bottomOffset` (default 88px, above BottomNav)
- *   and slides in from `y: 60`. Card styling is left entirely to the children.
- *
- * - **Modal** (`modal={true}`) — `fixed inset-0` dark backdrop with blur; the sheet
- *   slides in from `y: "100%"`. Includes a drag handle above the children. Closes on
- *   backdrop tap if `onClose` is provided.
- *
- * Used by: ProfileSheet (overlay), CandidateSheet (overlay), JobDetailSheet (modal).
- */
 export function BottomSheet(props: BottomSheetProps) {
   if (props.modal) {
     const { children, onClose } = props;

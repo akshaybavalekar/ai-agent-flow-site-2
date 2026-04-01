@@ -6,23 +6,17 @@
  * ~80% fewer tokens than JSON. Parser is transparent to GridView — output
  * is identical shape to what JSON-based cards produce.
  *
- * SUPPORTED CARD TYPES (32):
- *   Flat:      stat · callout · person-card · relationship-card
- *              incident-card · info-card · country-card · avatar-prompt
- *              circular-gauge · progress-bar · level-meter · path-track
- *              trend-line · job-card · learning-card
- *   Container: kpi-strip · metric-list · bullet-list · alert · timeline
- *              checklist · pipeline · ranked-list · bar-chart · donut
- *              waterfall · line-chart · org-roster · delegation-card
- *              decision-card · data-cluster
- *
- * JSON FALLBACK (too complex for flat DSL):
- *   table · comparison-table · heatmap · risk-matrix
- *   stacked-bar · image-card
+ * SUPPORTED CARD TYPES (16) — trainco training platform:
+ *   Flat:      concept-card
+ *   Container: course-overview · course-progress · learning-path · lesson
+ *              objectives · flashcard · skill-quiz · skills-assessment
+ *              skills-profile · certifications · step-by-step
+ *              milestone · achievement · celebration · lesson-split
  *
  * ITEM PREFIXES:
- *   kpi · metric · bullet · alert-item · event · check · stage · rank
- *   bar · slice · fall · point · member · delegate · option · dmetric
+ *   domain · dp · module · lesson-step · objective · card-item
+ *   quiz-opt · assessed-skill · skill-item · cert · step-item
+ *   m-stat · a-stat · cel-detail · split-bullet
  */
 
 export { type CardDef } from '@/types/cards';
@@ -58,257 +52,142 @@ function f(s: string | undefined): number {
 }
 
 // ── Schema table ─────────────────────────────────────────────────────────────
-// Pipe counts used by the prompt to help the model self-validate.
 export const DSL_SCHEMA: Record<string, { pipeCount: number; fields: string[] }> = {
     // Flat cards
-    'stat':              { pipeCount: 6, fields: ['label','value','trend','status','subtitle','change'] },
-    'callout':           { pipeCount: 4, fields: ['icon','value','label','body'] },
-    'person-card':       { pipeCount: 6, fields: ['name','title','metric','metricLabel','status','detail'] },
-    'relationship-card': { pipeCount: 8, fields: ['name','role','sentiment','trajectory','lastContact','daysSince','actionNeeded','riskLevel'] },
-    'incident-card':     { pipeCount: 5, fields: ['severity','title','summary','impact','resolution'] },
-    'info-card':         { pipeCount: 5, fields: ['icon','title','body','cta','ctaPhrase'] },
-    'country-card':      { pipeCount: 7, fields: ['country','flag','revenue','employees','politicalRisk','relationshipHealth','keyContact'] },
-    'avatar-prompt':     { pipeCount: 5, fields: ['question','showProgress','progressStep','progressTotal','wide'] },
-    'circular-gauge':    { pipeCount: 4, fields: ['title','percentage','accent','subtitle'] },
-    'progress-bar':      { pipeCount: 5, fields: ['title','label','percent','subtitle','showPercentage'] },
-    'level-meter':       { pipeCount: 6, fields: ['title','label','current','target','segments','subtitle'] },
-    'path-track':        { pipeCount: 6, fields: ['title','label','percentage','fromLabel','toLabel','subtitle'] },
-    'trend-line':        { pipeCount: 4, fields: ['title','data','showLabels','subtitle'] },
-    'job-card':          { pipeCount: 8, fields: ['title','jobTitle','company','location','salaryRange','matchScore','aiSummary','saved'] },
-    'learning-card':     { pipeCount: 8, fields: ['title','courseTitle','currentLevel','targetLevel','levelLabel','type','progress','duration'] },
+    'concept-card':    { pipeCount: 7, fields: ['term','definition','explanation','examTip','category','examples (semicolons)','relatedTerms (semicolons)'] },
     // Container headers
-    'kpi-strip':         { pipeCount: 0, fields: [] },
-    'metric-list':       { pipeCount: 1, fields: ['title'] },
-    'bullet-list':       { pipeCount: 1, fields: ['title'] },
-    'alert':             { pipeCount: 1, fields: ['title'] },
-    'timeline':          { pipeCount: 1, fields: ['title'] },
-    'checklist':         { pipeCount: 1, fields: ['title'] },
-    'pipeline':          { pipeCount: 1, fields: ['title'] },
-    'ranked-list':       { pipeCount: 2, fields: ['title','unit'] },
-    'bar-chart':         { pipeCount: 2, fields: ['title','unit'] },
-    'donut':             { pipeCount: 3, fields: ['title','centerLabel','centerValue'] },
-    'waterfall':         { pipeCount: 2, fields: ['title','unit'] },
-    'line-chart':        { pipeCount: 2, fields: ['title','unit'] },
-    'org-roster':        { pipeCount: 1, fields: ['title'] },
-    'delegation-card':   { pipeCount: 1, fields: ['title'] },
-    'decision-card':     { pipeCount: 6, fields: ['title','subject','urgency','deadline','consequence','owner'] },
-    'data-cluster':      { pipeCount: 1, fields: ['title'] },
+    'course-overview': { pipeCount: 7, fields: ['courseTitle','certificationName','difficulty','totalQuestions','passingScore','examDuration','overallMastery'] },
+    'course-progress': { pipeCount: 3, fields: ['courseTitle','overallScore','readyForExam'] },
+    'learning-path':   { pipeCount: 5, fields: ['title','subtitle','targetJob','totalDuration','overallProgress'] },
+    'lesson':          { pipeCount: 4, fields: ['lessonTitle','lessonSubtitle','skill','difficulty'] },
+    'objectives':      { pipeCount: 2, fields: ['title','taskTitle'] },
+    'flashcard':       { pipeCount: 2, fields: ['title','subtitle'] },
+    'skill-quiz':      { pipeCount: 7, fields: ['skillName','question','difficulty','currentScore','totalQuestions','questionsAnswered','explanation'] },
+    'skills-assessment': { pipeCount: 1, fields: ['title'] },
+    'skills-profile':  { pipeCount: 1, fields: ['title'] },
+    'certifications':  { pipeCount: 1, fields: ['title'] },
+    'step-by-step':    { pipeCount: 3, fields: ['title','subtitle','currentStep'] },
+    'milestone':       { pipeCount: 5, fields: ['title','milestone','subtitle','encouragement','nextMilestone'] },
+    'achievement':     { pipeCount: 5, fields: ['achievementTitle','badge','date','message','title'] },
+    'celebration':     { pipeCount: 3, fields: ['title','type','subtitle'] },
+    'lesson-split':    { pipeCount: 4, fields: ['title','content','badge','actionText'] },
     // Item lines
-    'kpi':         { pipeCount: 5, fields: ['label','value','change','trend','status'] },
-    'metric':      { pipeCount: 4, fields: ['label','value','delta','status'] },
-    'bullet':      { pipeCount: 2, fields: ['text','status'] },
-    'alert-item':  { pipeCount: 3, fields: ['severity','title','detail'] },
-    'event':       { pipeCount: 3, fields: ['date','title','impact'] },
-    'check':       { pipeCount: 3, fields: ['text','status','detail'] },
-    'stage':       { pipeCount: 4, fields: ['label','status','detail','duration'] },
-    'rank':        { pipeCount: 4, fields: ['label','value','displayValue','change'] },
-    'bar':         { pipeCount: 3, fields: ['label','value','previousValue'] },
-    'slice':       { pipeCount: 3, fields: ['label','percent','color'] },
-    'fall':        { pipeCount: 3, fields: ['label','value','isTotal'] },
-    'point':       { pipeCount: 2, fields: ['label','value'] },
-    'member':      { pipeCount: 3, fields: ['name','role','badge'] },
-    'delegate':    { pipeCount: 5, fields: ['task','owner','status','eta','detail'] },
-    'option':      { pipeCount: 3, fields: ['label','recommender','recommended'] },
-    'dmetric':     { pipeCount: 5, fields: ['label','value','trend','change','status'] },
-    // ── New types (formerly "JSON fallback") ──
-    'image-card':        { pipeCount: 3, fields: ['imageUrl','caption','subtitle'] },
-    'calendar':          { pipeCount: 1, fields: ['title'] },
-    'cal-event':         { pipeCount: 5, fields: ['title','date','time','duration','status'] },
-    'risk-matrix':       { pipeCount: 1, fields: ['title'] },
-    'risk':              { pipeCount: 3, fields: ['label','likelihood','impact'] },
-    'stacked-bar':       { pipeCount: 2, fields: ['title','unit'] },
-    'sbar':              { pipeCount: 4, fields: ['group','label','value','color'] },
-    'table':             { pipeCount: 2, fields: ['title','headers (semicolon-delimited)'] },
-    'trow':              { pipeCount: -1, fields: ['val1','val2','...'] },
-    'comparison-table':  { pipeCount: 2, fields: ['title','headers (semicolon-delimited)'] },
-    'crow':              { pipeCount: -1, fields: ['val1','val2','...'] },
-    'heatmap':           { pipeCount: 2, fields: ['title','cols (semicolon-delimited)'] },
-    'hrow':              { pipeCount: -1, fields: ['rowLabel','val1','val2','...'] },
-    'dotitem':           { pipeCount: 4, fields: ['label','filled','target','value'] },
-    'skill':             { pipeCount: 4, fields: ['name','currentLevel','targetLevel','evidence'] },
+    'domain':        { pipeCount: 4, fields: ['number','title','weight','masteryScore'] },
+    'dp':            { pipeCount: 5, fields: ['number','title','weight','tasksCompleted','totalTasks'] },
+    'module':        { pipeCount: 4, fields: ['title','duration','status','description'] },
+    'lesson-step':   { pipeCount: 4, fields: ['stepNumber','title','description','duration'] },
+    'objective':     { pipeCount: 3, fields: ['text','completed','score'] },
+    'card-item':     { pipeCount: 2, fields: ['term','definition'] },
+    'quiz-opt':      { pipeCount: 2, fields: ['text','correct'] },
+    'assessed-skill': { pipeCount: 4, fields: ['name','score','category','lastAssessed'] },
+    'skill-item':    { pipeCount: 4, fields: ['name','level','category','verified'] },
+    'cert':          { pipeCount: 5, fields: ['name','issuer','issueDate','expiryDate','status'] },
+    'step-item':     { pipeCount: 4, fields: ['stepNumber','title','description','completed'] },
+    'm-stat':        { pipeCount: 3, fields: ['label','value','improvement'] },
+    'a-stat':        { pipeCount: 2, fields: ['label','value'] },
+    'cel-detail':    { pipeCount: 2, fields: ['label','value'] },
+    'split-bullet':  { pipeCount: 1, fields: ['text'] },
 };
 
 // ── Container → item prefix map ───────────────────────────────────────────────
 const CONTAINER_ITEM_PREFIXES: Record<string, string> = {
-    'kpi-strip':       'kpi',
-    'metric-list':     'metric',
-    'bullet-list':     'bullet',
-    'alert':           'alert-item',
-    'timeline':        'event',
-    'checklist':       'check',
-    'pipeline':        'stage',
-    'ranked-list':     'rank',
-    'bar-chart':       'bar',
-    'donut':           'slice',
-    'waterfall':       'fall',
-    'line-chart':      'point',
-    'org-roster':      'member',
-    'delegation-card': 'delegate',
-    'decision-card':   'option',
-    'data-cluster':    'dmetric',
-    // New types
-    'calendar':          'cal-event',
-    'risk-matrix':       'risk',
-    'stacked-bar':       'sbar',
-    'table':             'trow',
-    'comparison-table':  'crow',
-    'heatmap':           'hrow',
-    'dot-plot':          'dotitem',
-    'skill-card':        'skill',
+    'course-overview':   'domain',
+    'course-progress':   'dp',
+    'learning-path':     'module',
+    'lesson':            'lesson-step',
+    'objectives':        'objective',
+    'flashcard':         'card-item',
+    'skill-quiz':        'quiz-opt',
+    'skills-assessment': 'assessed-skill',
+    'skills-profile':    'skill-item',
+    'certifications':    'cert',
+    'step-by-step':      'step-item',
+    'milestone':         'm-stat',
+    'achievement':       'a-stat',
+    'celebration':       'cel-detail',
+    'lesson-split':      'split-bullet',
 };
 
 const CONTAINER_TYPES   = new Set(Object.keys(CONTAINER_ITEM_PREFIXES));
 const ALL_ITEM_PREFIXES = new Set(Object.values(CONTAINER_ITEM_PREFIXES));
-const FLAT_TYPES        = new Set([
-    'stat', 'callout', 'person-card', 'relationship-card',
-    'incident-card', 'info-card', 'country-card', 'image-card', 'avatar-prompt',
-    'circular-gauge', 'progress-bar', 'level-meter', 'path-track', 'trend-line',
-    'job-card', 'learning-card',
-]);
+const FLAT_TYPES        = new Set(['concept-card']);
 
 // ── Item parsers ──────────────────────────────────────────────────────────────
 function parseItem(prefix: string, fields: string[]): Record<string, any> | null {
     switch (prefix) {
-        case 'kpi': {
-            const [label, value, change, trend, status] = fields;
-            return { label: n(label), value: n(value), change: n(change), trend: n(trend), status: n(status) };
-        }
-        case 'metric': {
-            // Fix #6: lenient 3-pipe detection.
-            // Model sends metric|Label|Value|watch (3 pipes) → "watch" lands in delta slot, status=undefined, no dot.
-            // If 3 fields and field[2] is a known status word, auto-shift: delta=undefined, status=field[2].
-            const VALID_STATUSES = new Set(['good', 'bad', 'watch', 'info', 'neutral']);
-            let [label, value, delta, status] = fields;
-            if (fields.length === 3 && VALID_STATUSES.has((fields[2] ?? '').toLowerCase().trim())) {
-                delta  = undefined as any;
-                status = fields[2];
-            }
-            return { label: n(label) ?? '', value: n(value) ?? '', change: n(delta), status: n(status) };
-        }
-        case 'bullet': {
-            const [text, status] = fields;
-            return { text: n(text) ?? '', status: n(status) };
-        }
-        case 'alert-item': {
-            const [severity, title, ...rest] = fields;
-            return { severity: n(severity) ?? 'info', title: n(title) ?? '', detail: n(rest.join('|')) ?? '' };
-        }
-        case 'event': {
-            const [date, title, ...rest] = fields;
-            return { date: n(date) ?? '', title: n(title) ?? '', impact: n(rest.join('|')) };
-        }
-        case 'check': {
-            const [text, status, ...rest] = fields;
-            return { text: n(text) ?? '', status: n(status) ?? 'pending', detail: n(rest.join('|')) };
-        }
-        case 'stage': {
-            const [label, status, detail, duration] = fields;
-            return { label: n(label) ?? '', status: n(status) ?? 'pending', detail: n(detail), duration: n(duration) };
-        }
-        case 'rank': {
-            const [label, valueStr, displayValue, change] = fields;
-            return { label: n(label) ?? '', value: f(valueStr), displayValue: n(displayValue), change: n(change) };
-        }
-        case 'bar': {
-            const [label, valueStr, prevStr] = fields;
-            const item: Record<string, any> = { label: n(label) ?? '', value: f(valueStr) };
-            if (n(prevStr)) item.previousValue = f(prevStr);
+        case 'domain': {
+            const [numStr, title, weightStr, masteryStr] = fields;
+            const item: Record<string, any> = { number: parseInt(n(numStr) ?? '0', 10), title: n(title) ?? '', weight: f(weightStr) };
+            if (n(masteryStr)) item.masteryScore = f(masteryStr);
             return item;
         }
-        case 'slice': {
-            const [label, percentStr, color] = fields;
-            const item: Record<string, any> = { label: n(label) ?? '', percent: f(percentStr) };
-            if (n(color)) item.color = n(color);
+        case 'dp': {
+            const [numStr, title, weightStr, tasksCompStr, totalTasksStr] = fields;
+            return { domainNumber: parseInt(n(numStr) ?? '0', 10), domainTitle: n(title) ?? '', weight: f(weightStr), tasksCompleted: f(tasksCompStr), totalTasks: f(totalTasksStr) };
+        }
+        case 'module': {
+            const [title, duration, status, ...rest] = fields;
+            return { title: n(title) ?? '', duration: n(duration), status: n(status) ?? 'locked', description: n(rest.join('|')) };
+        }
+        case 'lesson-step': {
+            const [stepNumStr, title, description, duration] = fields;
+            return { stepNumber: parseInt(n(stepNumStr) ?? '1', 10), title: n(title) ?? '', description: n(description) ?? '', duration: n(duration) };
+        }
+        case 'objective': {
+            const [text, completedStr, scoreStr] = fields;
+            const item: Record<string, any> = { text: n(text) ?? '', completed: b(completedStr) };
+            if (n(scoreStr)) item.score = f(scoreStr);
             return item;
         }
-        case 'fall': {
-            const [label, valueStr, isTotalStr] = fields;
-            const item: Record<string, any> = { label: n(label) ?? '', value: f(valueStr) };
-            if (b(isTotalStr)) item.isTotal = true;
+        case 'card-item': {
+            const [term, definition] = fields;
+            return { term: n(term) ?? '', definition: n(definition) ?? '' };
+        }
+        case 'quiz-opt': {
+            const [text, correctStr] = fields;
+            const item: Record<string, any> = { text: n(text) ?? '' };
+            if (b(correctStr)) item.correct = true;
             return item;
         }
-        case 'point': {
-            const [label, valueStr] = fields;
-            // If label is a plain number, treat as unlabelled data point
-            const lbl = n(label);
-            const val = f(valueStr !== undefined ? valueStr : label);
-            if (lbl && isNaN(Number(lbl))) {
-                return { label: lbl, value: val };
-            }
-            // No label — just the numeric value (label field is the value)
-            return { value: n(valueStr) !== undefined ? val : f(label) };
-        }
-        case 'member': {
-            const [name, role, badge] = fields;
-            const item: Record<string, any> = { name: n(name) ?? '', role: n(role) ?? '' };
-            if (n(badge)) item.badge = n(badge);
+        case 'assessed-skill': {
+            const [name, scoreStr, category, lastAssessed] = fields;
+            const item: Record<string, any> = { name: n(name) ?? '', score: f(scoreStr) };
+            if (n(category)) item.category = n(category);
+            if (n(lastAssessed)) item.lastAssessed = n(lastAssessed);
             return item;
         }
-        case 'delegate': {
-            const [task, owner, status, eta, ...rest] = fields;
-            return {
-                task: n(task) ?? '',
-                owner: n(owner) ?? '',
-                status: n(status) ?? 'waiting',
-                eta: n(eta),
-                detail: n(rest.join('|')),
-            };
-        }
-        case 'option': {
-            const [label, recommender, recommended] = fields;
-            const item: Record<string, any> = { label: n(label) ?? '' };
-            if (n(recommender)) item.recommender = n(recommender);
-            if (b(recommended)) item.recommended = true;
+        case 'skill-item': {
+            const [name, levelStr, category, verifiedStr] = fields;
+            const item: Record<string, any> = { name: n(name) ?? '', level: f(levelStr) };
+            if (n(category)) item.category = n(category);
+            if (b(verifiedStr)) item.verified = true;
             return item;
         }
-        case 'dmetric': {
-            const [label, value, trend, change, status] = fields;
-            return { label: n(label) ?? '', value: n(value) ?? '', trend: n(trend), change: n(change), status: n(status) };
-        }
-        case 'cal-event': {
-            const [title, date, time, duration, status] = fields;
-            return { title: n(title) ?? '', date: n(date), time: n(time), duration: n(duration), status: n(status) };
-        }
-        case 'risk': {
-            const [label, likelihood, impact] = fields;
-            return { label: n(label) ?? '', likelihood: n(likelihood) ?? 'medium', impact: n(impact) ?? 'medium' };
-        }
-        case 'sbar': {
-            const [group, label, valueStr, color] = fields;
-            const item: Record<string, any> = { group: n(group) ?? '', label: n(label) ?? '', value: f(valueStr) };
-            if (n(color)) item.color = n(color);
+        case 'cert': {
+            const [name, issuer, issueDate, expiryDate, status] = fields;
+            const item: Record<string, any> = { name: n(name) ?? '', issuer: n(issuer) ?? '', issueDate: n(issueDate) ?? '' };
+            if (n(expiryDate)) item.expiryDate = n(expiryDate);
+            if (n(status)) item.status = n(status);
             return item;
         }
-        case 'trow': {
-            // All fields are cell values — return as array
-            return { cells: fields.map(f => n(f) ?? '') };
+        case 'step-item': {
+            const [stepNumStr, title, description, completedStr] = fields;
+            return { stepNumber: parseInt(n(stepNumStr) ?? '1', 10), title: n(title) ?? '', description: n(description) ?? '', completed: b(completedStr) };
         }
-        case 'crow': {
-            // Same as trow — comparison-table rows
-            return { cells: fields.map(f => n(f) ?? '') };
+        case 'm-stat': {
+            const [label, value, improvement] = fields;
+            const item: Record<string, any> = { label: n(label) ?? '', value: n(value) ?? '' };
+            if (n(improvement)) item.improvement = n(improvement);
+            return item;
         }
-        case 'hrow': {
-            // First field = row label, rest = cell values
-            const [rowLabel, ...vals] = fields;
-            return { rowLabel: n(rowLabel) ?? '', values: vals.map(v => f(v)) };
+        case 'a-stat':
+        case 'cel-detail': {
+            const [label, value] = fields;
+            return { label: n(label) ?? '', value: n(value) ?? '' };
         }
-        case 'dotitem': {
-            const [label, filledStr, targetStr, value] = fields;
-            return { 
-                label: n(label) ?? '', 
-                filled: parseInt(n(filledStr) ?? '0', 10) || 0,
-                target: parseInt(n(targetStr) ?? '0', 10) || 0,
-                value: n(value)
-            };
-        }
-        case 'skill': {
-            const [name, currentStr, targetStr, evidence] = fields;
-            return {
-                name: n(name) ?? '',
-                currentLevel: parseInt(n(currentStr) ?? '0', 10) || 0,
-                targetLevel: parseInt(n(targetStr) ?? '0', 10) || 0,
-                evidence: n(evidence)
-            };
+        case 'split-bullet': {
+            const [text] = fields;
+            return { text: n(text) ?? '' };
         }
         default:
             return null;
@@ -321,138 +200,15 @@ function parseFlatCard(type: string, fields: string[], span?: 'full'): CardDef |
     if (span) card.span = span;
 
     switch (type) {
-        case 'stat': {
-            const [label, value, trend, status, subtitle, change] = fields;
-            return Object.assign(card, { label: n(label), value: n(value), trend: n(trend), status: n(status), subtitle: n(subtitle), change: n(change) });
-        }
-        case 'callout': {
-            const [icon, value, label, ...rest] = fields;
-            return Object.assign(card, { icon: n(icon), value: n(value), label: n(label), body: n(rest.join('|')) });
-        }
-        case 'person-card': {
-            const [name, title, metric, metricLabel, status, ...rest] = fields;
-            return Object.assign(card, { name: n(name) ?? '', title: n(title), metric: n(metric), metricLabel: n(metricLabel), status: n(status), detail: n(rest.join('|')) });
-        }
-        case 'relationship-card': {
-            const [name, role, sentiment, trajectory, lastContact, daysSinceStr, actionNeeded, riskLevel] = fields;
-            const item: CardDef = Object.assign(card, { name: n(name) ?? '', role: n(role), sentiment: n(sentiment) ?? 'watch', trajectory: n(trajectory), lastContact: n(lastContact), actionNeeded: n(actionNeeded), riskLevel: n(riskLevel) });
-            if (n(daysSinceStr)) item.daysSince = parseInt(n(daysSinceStr) ?? '0', 10);
+        case 'concept-card': {
+            const [term, definition, explanation, examTip, category, examplesStr, relatedTermsStr] = fields;
+            const item: CardDef = Object.assign(card, { term: n(term) ?? '', definition: n(definition) ?? '' });
+            if (n(explanation))   item.explanation = n(explanation);
+            if (n(examTip))       item.examTip = n(examTip);
+            if (n(category))      item.category = n(category);
+            if (n(examplesStr))   item.examples = n(examplesStr)!.split(';').map(s => s.trim()).filter(Boolean);
+            if (n(relatedTermsStr)) item.relatedTerms = n(relatedTermsStr)!.split(';').map(s => s.trim()).filter(Boolean);
             return item;
-        }
-        case 'incident-card': {
-            const [severity, title, summary, impact, ...rest] = fields;
-            return Object.assign(card, { severity: n(severity) ?? 'info', title: n(title) ?? '', summary: n(summary), impact: n(impact), resolution: n(rest.join('|')) });
-        }
-        case 'info-card': {
-            const [icon, title, body, cta, ctaPhrase] = fields;
-            return Object.assign(card, { icon: n(icon), title: n(title) ?? '', body: n(body) ?? '', cta: n(cta), ctaPhrase: n(ctaPhrase) });
-        }
-        case 'country-card': {
-            const [country, flag, revenue, employees, politicalRisk, relationshipHealth, keyContact] = fields;
-            return Object.assign(card, { country: n(country) ?? '', flag: n(flag), revenue: n(revenue), employees: n(employees), politicalRisk: n(politicalRisk), relationshipHealth: n(relationshipHealth), keyContact: n(keyContact) });
-        }
-        case 'image-card': {
-            const [imageUrl, caption, subtitle] = fields;
-            return Object.assign(card, { imageUrl: n(imageUrl), caption: n(caption), subtitle: n(subtitle) });
-        }
-        case 'avatar-prompt': {
-            const [question, showProgressStr, progressStepStr, progressTotalStr, wideStr] = fields;
-            Object.assign(card, { question: n(question) });
-            if (n(showProgressStr) !== undefined) card.showProgress = b(showProgressStr);
-            if (n(progressStepStr) !== undefined) {
-                card.progressStep = parseInt(n(progressStepStr) ?? '0', 10) || 0;
-            }
-            if (n(progressTotalStr) !== undefined) {
-                card.progressTotal = parseInt(n(progressTotalStr) ?? '4', 10) || 4;
-            }
-            if (n(wideStr) !== undefined) card.questionWide = b(wideStr);
-            return card;
-        }
-        case 'circular-gauge': {
-            const [title, percentageStr, accent, subtitle] = fields;
-            Object.assign(card, { title: n(title), subtitle: n(subtitle) });
-            if (n(percentageStr) !== undefined) {
-                card.percentage = parseInt(n(percentageStr) ?? '0', 10) || 0;
-            }
-            if (n(accent) !== undefined) card.accent = n(accent);
-            return card;
-        }
-        case 'progress-bar': {
-            const [title, label, percentStr, subtitle, showPercentageStr] = fields;
-            Object.assign(card, { 
-                title: n(title), 
-                label: n(label), 
-                subtitle: n(subtitle),
-                percent: parseInt(n(percentStr) ?? '0', 10) || 0
-            });
-            if (n(showPercentageStr) !== undefined) card.showPercentage = b(showPercentageStr);
-            return card;
-        }
-        case 'level-meter': {
-            const [title, label, currentStr, targetStr, segmentsStr, subtitle] = fields;
-            Object.assign(card, { 
-                title: n(title), 
-                label: n(label), 
-                subtitle: n(subtitle),
-                current: parseInt(n(currentStr) ?? '0', 10) || 0,
-                target: parseInt(n(targetStr) ?? '0', 10) || 0
-            });
-            if (n(segmentsStr) !== undefined) {
-                card.segments = parseInt(n(segmentsStr) ?? '5', 10) || 5;
-            }
-            return card;
-        }
-        case 'path-track': {
-            const [title, label, percentageStr, fromLabel, toLabel, subtitle] = fields;
-            return Object.assign(card, {
-                title: n(title),
-                label: n(label),
-                percentage: parseInt(n(percentageStr) ?? '0', 10) || 0,
-                fromLabel: n(fromLabel),
-                toLabel: n(toLabel),
-                subtitle: n(subtitle)
-            });
-        }
-        case 'trend-line': {
-            const [title, dataStr, showLabelsStr, subtitle] = fields;
-            let data = [];
-            try {
-                data = JSON.parse(n(dataStr) ?? '[]');
-            } catch {
-                data = [];
-            }
-            return Object.assign(card, {
-                title: n(title),
-                data,
-                showLabels: b(showLabelsStr),
-                subtitle: n(subtitle)
-            });
-        }
-        case 'job-card': {
-            const [title, jobTitle, company, location, salaryRange, matchScoreStr, aiSummary, savedStr] = fields;
-            return Object.assign(card, {
-                title: n(title),
-                jobTitle: n(jobTitle) ?? '',
-                company: n(company) ?? '',
-                location: n(location) ?? '',
-                salaryRange: n(salaryRange) ?? '',
-                matchScore: parseInt(n(matchScoreStr) ?? '0', 10) || 0,
-                aiSummary: n(aiSummary) ?? '',
-                saved: b(savedStr)
-            });
-        }
-        case 'learning-card': {
-            const [title, courseTitle, currentStr, targetStr, levelLabel, type, progressStr, duration] = fields;
-            return Object.assign(card, {
-                title: n(title),
-                courseTitle: n(courseTitle) ?? '',
-                currentLevel: parseInt(n(currentStr) ?? '0', 10) || 0,
-                targetLevel: parseInt(n(targetStr) ?? '0', 10) || 0,
-                levelLabel: n(levelLabel) ?? '',
-                type: n(type) || 'reading',
-                progress: parseInt(n(progressStr) ?? '0', 10) || 0,
-                duration: n(duration)
-            });
         }
         default:
             return null;
@@ -460,49 +216,107 @@ function parseFlatCard(type: string, fields: string[], span?: 'full'): CardDef |
 }
 
 // ── Container extra metadata ──────────────────────────────────────────────────
-// Some containers store more than just title/unit in their header line.
 interface ContainerMeta {
     title?: string;
-    unit?: string;
-    centerLabel?: string;
-    centerValue?: string;
-    subject?: string;
-    urgency?: string;
-    deadline?: string;
-    consequence?: string;
-    owner?: string;
-    headers?: string[];  // table, comparison-table, heatmap column headers
+    courseTitle?: string;
+    certificationName?: string;
+    difficulty?: string;
+    totalQuestions?: number;
+    passingScore?: number;
+    examDuration?: string;
+    overallMastery?: number;
+    overallScore?: number;
+    readyForExam?: boolean;
+    subtitle?: string;
+    targetJob?: string;
+    totalDuration?: string;
+    overallProgress?: number;
+    lessonTitle?: string;
+    lessonSubtitle?: string;
+    skill?: string;
+    taskTitle?: string;
+    skillName?: string;
+    question?: string;
+    currentScore?: number;
+    totalQuestions2?: number;
+    questionsAnswered?: number;
+    explanation?: string;
+    currentStep?: number;
+    milestone?: string;
+    encouragement?: string;
+    nextMilestone?: string;
+    achievementTitle?: string;
+    badge?: string;
+    date?: string;
+    message?: string;
+    type?: string;
+    content?: string;
+    actionText?: string;
 }
 
 function parseContainerHeader(type: string, fields: string[]): ContainerMeta {
     switch (type) {
-        case 'donut':
-            return { title: n(fields[0]), centerLabel: n(fields[1]), centerValue: n(fields[2]) };
-        case 'bar-chart':
-        case 'waterfall':
-        case 'line-chart':
-        case 'ranked-list':
-            return { title: n(fields[0]), unit: n(fields[1]) };
-        case 'decision-card':
-            return {
-                title:       n(fields[0]),
-                subject:     n(fields[1]),
-                urgency:     n(fields[2]),
-                deadline:    n(fields[3]),
-                consequence: n(fields[4]),
-                owner:       n(fields[5]),
-            };
-        case 'table':
-        case 'comparison-table':
-        case 'heatmap': {
-            // Second field is semicolon-delimited headers/columns
-            const title = n(fields[0]);
-            const headerStr = n(fields[1]) ?? '';
-            const headers = headerStr.split(';').map(h => h.trim()).filter(Boolean);
-            return { title, headers };
+        case 'course-overview': {
+            const [courseTitle, certificationName, difficulty, totalQStr, passingStr, examDuration, masteryStr] = fields;
+            const meta: ContainerMeta = { courseTitle: n(courseTitle) ?? '' };
+            if (n(certificationName)) meta.certificationName = n(certificationName);
+            if (n(difficulty))        meta.difficulty = n(difficulty);
+            if (n(totalQStr))         meta.totalQuestions = parseInt(n(totalQStr)!, 10);
+            if (n(passingStr))        meta.passingScore = parseInt(n(passingStr)!, 10);
+            if (n(examDuration))      meta.examDuration = n(examDuration);
+            if (n(masteryStr))        meta.overallMastery = f(masteryStr);
+            return meta;
         }
-        case 'stacked-bar':
-            return { title: n(fields[0]), unit: n(fields[1]) };
+        case 'course-progress': {
+            const [courseTitle, scoreStr, readyStr] = fields;
+            return { courseTitle: n(courseTitle) ?? '', overallScore: n(scoreStr) ? f(scoreStr) : undefined, readyForExam: b(readyStr) };
+        }
+        case 'learning-path': {
+            const [title, subtitle, targetJob, totalDuration, progressStr] = fields;
+            const meta: ContainerMeta = { title: n(title) };
+            if (n(subtitle))     meta.subtitle = n(subtitle);
+            if (n(targetJob))    meta.targetJob = n(targetJob);
+            if (n(totalDuration)) meta.totalDuration = n(totalDuration);
+            if (n(progressStr))  meta.overallProgress = f(progressStr);
+            return meta;
+        }
+        case 'lesson': {
+            const [lessonTitle, lessonSubtitle, skill, difficulty] = fields;
+            return { lessonTitle: n(lessonTitle) ?? '', lessonSubtitle: n(lessonSubtitle), skill: n(skill), difficulty: n(difficulty) };
+        }
+        case 'objectives': {
+            const [title, taskTitle] = fields;
+            return { title: n(title), taskTitle: n(taskTitle) };
+        }
+        case 'flashcard': {
+            const [title, subtitle] = fields;
+            return { title: n(title), subtitle: n(subtitle) };
+        }
+        case 'skill-quiz': {
+            const [skillName, question, difficulty, scoreStr, totalQStr, answeredStr, explanation] = fields;
+            const meta: ContainerMeta = { skillName: n(skillName) ?? '', question: n(question) ?? '', difficulty: n(difficulty) };
+            if (n(scoreStr))    meta.currentScore = f(scoreStr);
+            if (n(totalQStr))   meta.totalQuestions2 = parseInt(n(totalQStr)!, 10);
+            if (n(answeredStr)) meta.questionsAnswered = parseInt(n(answeredStr)!, 10);
+            if (n(explanation)) meta.explanation = n(explanation);
+            return meta;
+        }
+        case 'milestone': {
+            const [title, milestone, subtitle, encouragement, nextMilestone] = fields;
+            return { title: n(title), milestone: n(milestone) ?? '', subtitle: n(subtitle), encouragement: n(encouragement), nextMilestone: n(nextMilestone) };
+        }
+        case 'achievement': {
+            const [achievementTitle, badge, date, message, title] = fields;
+            return { achievementTitle: n(achievementTitle) ?? '', badge: n(badge), date: n(date), message: n(message), title: n(title) };
+        }
+        case 'celebration': {
+            const [title, type, subtitle] = fields;
+            return { title: n(title), type: n(type), subtitle: n(subtitle) };
+        }
+        case 'lesson-split': {
+            const [title, content, badge, actionText] = fields;
+            return { title: n(title) ?? '', content: n(content) ?? '', badge: n(badge), actionText: n(actionText) };
+        }
         default:
             return { title: n(fields[0]) };
     }
@@ -516,124 +330,99 @@ function flushContainer(
     span: 'full' | undefined,
     cards: CardDef[]
 ): void {
-    if (type !== 'kpi-strip' && items.length === 0) return;
+    if (items.length === 0 && !['flashcard', 'skill-quiz', 'lesson'].includes(type)) return;
     const card: CardDef = { type };
     if (span) card.span = span;
     if (meta.title) card.title = meta.title;
 
     switch (type) {
-        case 'kpi-strip':
-            card.items = items;
+        case 'course-overview':
+            if (meta.courseTitle)       card.courseTitle       = meta.courseTitle;
+            if (meta.certificationName) card.certificationName = meta.certificationName;
+            if (meta.difficulty)        card.difficulty        = meta.difficulty;
+            if (meta.totalQuestions)    card.totalQuestions    = meta.totalQuestions;
+            if (meta.passingScore)      card.passingScore      = meta.passingScore;
+            if (meta.examDuration)      card.examDuration      = meta.examDuration;
+            if (meta.overallMastery !== undefined) card.overallMastery = meta.overallMastery;
+            card.domains = items;
             break;
-        case 'metric-list':
-        case 'bullet-list':
-        case 'checklist':
-        case 'data-cluster':
-            card.items = type === 'data-cluster' ? undefined : items;
-            if (type === 'data-cluster') card.metrics = items;
-            else card.items = items;
+        case 'course-progress':
+            if (meta.courseTitle)              card.courseTitle  = meta.courseTitle;
+            if (meta.overallScore !== undefined) card.overallScore = meta.overallScore;
+            if (meta.readyForExam)             card.readyForExam = meta.readyForExam;
+            card.domains = items;
             break;
-        case 'alert':
-            card.alerts = items;
+        case 'learning-path':
+            if (meta.subtitle)       card.subtitle       = meta.subtitle;
+            if (meta.targetJob)      card.targetJob      = meta.targetJob;
+            if (meta.totalDuration)  card.totalDuration  = meta.totalDuration;
+            if (meta.overallProgress !== undefined) card.overallProgress = meta.overallProgress;
+            card.modules = items;
             break;
-        case 'timeline':
-            card.events = items;
+        case 'lesson':
+            if (meta.lessonTitle)    card.lessonTitle    = meta.lessonTitle;
+            if (meta.lessonSubtitle) card.lessonSubtitle = meta.lessonSubtitle;
+            if (meta.skill)          card.skill          = meta.skill;
+            if (meta.difficulty)     card.difficulty     = meta.difficulty;
+            card.steps = items;
             break;
-        case 'pipeline':
-            card.stages = items;
+        case 'objectives':
+            if (meta.taskTitle) card.taskTitle = meta.taskTitle;
+            card.objectives = items;
             break;
-        case 'ranked-list':
-            if (meta.unit) card.unit = meta.unit;
-            card.items = items;
+        case 'flashcard':
+            if (meta.subtitle) card.subtitle = meta.subtitle;
+            card.cards = items;
             break;
-        case 'bar-chart':
-            if (meta.unit) card.unit = meta.unit;
-            card.bars = items;
-            break;
-        case 'donut':
-            if (meta.centerLabel) card.centerLabel = meta.centerLabel;
-            if (meta.centerValue) card.centerValue = meta.centerValue;
-            card.segments = items;
-            break;
-        case 'waterfall':
-            if (meta.unit) card.unit = meta.unit;
-            card.segments = items;
-            break;
-        case 'line-chart': {
-            if (meta.unit) card.unit = meta.unit;
-            // If items have labels → { label: value } object; else → number[]
-            const hasLabels = items.some(i => i.label !== undefined);
-            if (hasLabels) {
-                card.data = Object.fromEntries(items.map(i => [i.label ?? '', i.value]));
-            } else {
-                card.data = items.map(i => i.value);
-            }
-            break;
-        }
-        case 'org-roster':
-            card.members = items;
-            break;
-        case 'delegation-card':
-            card.items = items;
-            break;
-        case 'decision-card':
-            if (meta.subject)     card.subject     = meta.subject;
-            if (meta.urgency)     card.urgency     = meta.urgency;
-            if (meta.deadline)    card.deadline    = meta.deadline;
-            if (meta.consequence) card.consequence = meta.consequence;
-            if (meta.owner)       card.owner       = meta.owner;
+        case 'skill-quiz':
+            if (meta.skillName)         card.skillName         = meta.skillName;
+            if (meta.question)          card.question          = meta.question;
+            if (meta.difficulty)        card.difficulty        = meta.difficulty;
+            if (meta.currentScore !== undefined) card.currentScore = meta.currentScore;
+            if (meta.totalQuestions2)   card.totalQuestions    = meta.totalQuestions2;
+            if (meta.questionsAnswered) card.questionsAnswered = meta.questionsAnswered;
+            if (meta.explanation)       card.explanation       = meta.explanation;
             card.options = items;
             break;
-        case 'calendar':
-            card.events = items;
-            break;
-        case 'risk-matrix':
-            card.risks = items;
-            break;
-        case 'stacked-bar': {
-            if (meta.unit) card.unit = meta.unit;
-            // Group sbar items by their 'group' field → StackedGroup[]
-            const groupMap = new Map<string, { label: string; value: number; color?: string }[]>();
-            for (const item of items) {
-                const groupLabel = item.group ?? 'default';
-                if (!groupMap.has(groupLabel)) groupMap.set(groupLabel, []);
-                const segment: any = { label: item.label, value: item.value };
-                if (item.color) segment.color = item.color;
-                groupMap.get(groupLabel)!.push(segment);
-            }
-            card.groups = Array.from(groupMap.entries()).map(([label, segments]) => ({ label, segments }));
-            break;
-        }
-        case 'table': {
-            if (meta.headers) card.headers = meta.headers;
-            card.rows = items.map(i => i.cells);
-            break;
-        }
-        case 'comparison-table': {
-            if (meta.headers) card.headers = meta.headers;
-            card.rows = items.map(i => ({ cells: i.cells }));
-            break;
-        }
-        case 'heatmap': {
-            const cols = meta.headers ?? [];
-            card.cols = cols;
-            card.rows = items.map(i => i.rowLabel);
-            card.cells = items.map(i =>
-                i.values.map((v: number, ci: number) => ({
-                    label: cols[ci] ?? '',
-                    value: v,
-                }))
-            );
-            break;
-        }
-        case 'dot-plot': {
-            card.items = items;
-            break;
-        }
-        case 'skill-card': {
+        case 'skills-assessment':
             card.skills = items;
             break;
-        }
+        case 'skills-profile':
+            card.skills = items;
+            break;
+        case 'certifications':
+            card.certifications = items;
+            break;
+        case 'step-by-step':
+            if (meta.subtitle)     card.subtitle     = meta.subtitle;
+            if (meta.currentStep !== undefined) card.currentStep = meta.currentStep;
+            card.steps = items;
+            break;
+        case 'milestone':
+            if (meta.milestone)    card.milestone    = meta.milestone;
+            if (meta.subtitle)     card.subtitle     = meta.subtitle;
+            if (meta.encouragement) card.encouragement = meta.encouragement;
+            if (meta.nextMilestone) card.nextMilestone = meta.nextMilestone;
+            card.stats = items;
+            break;
+        case 'achievement':
+            if (meta.achievementTitle) card.achievementTitle = meta.achievementTitle;
+            if (meta.badge)            card.badge            = meta.badge;
+            if (meta.date)             card.date             = meta.date;
+            if (meta.message)          card.message          = meta.message;
+            card.stats = items;
+            break;
+        case 'celebration':
+            if (meta.type)     card.type     = meta.type;
+            if (meta.subtitle) card.subtitle = meta.subtitle;
+            card.details = items;
+            break;
+        case 'lesson-split':
+            if (meta.content)    card.content    = meta.content;
+            if (meta.badge)      card.badge      = meta.badge;
+            if (meta.actionText) card.actionText = meta.actionText;
+            card.bulletPoints = items.map((i: any) => i.text ?? '');
+            break;
     }
 
     cards.push(card);
