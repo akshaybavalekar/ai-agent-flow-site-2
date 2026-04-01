@@ -20,6 +20,11 @@
 
 import setTheme from './setTheme';
 import navigateToSection from './navigateToSection';
+import getGreetingOptions from './getGreetingOptions';
+import getTellMoreOptions from './getTellMoreOptions';
+import getIndustryOptions from './getIndustryOptions';
+import getIndustryCustomInput from './getIndustryCustomInput';
+import getExplorationOptions from './getExplorationOptions';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +119,61 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
       },
       required: ['badge', 'title', 'subtitle', 'generativeSubsections'],
     },
+  },
+
+  getGreetingOptions: {
+    fn: getGreetingOptions,
+    description: 'Returns greeting options for Step 3847-A in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getTellMoreOptions: {
+    fn: getTellMoreOptions,
+    description: 'Returns tell-me-more options for Step 3847-B in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getIndustryOptions: {
+    fn: getIndustryOptions,
+    description: 'Returns industry selection options for Step 5921-A in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getIndustryCustomInput: {
+    fn: getIndustryCustomInput,
+    description: 'Returns custom industry input for Step 5921-B in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getExplorationOptions: {
+    fn: getExplorationOptions,
+    description: 'Returns exploration options for Step 5921-C in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
   },
 
 };
