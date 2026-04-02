@@ -12,6 +12,7 @@ import { ConnectingScreen } from "@/components/ConnectingScreen";
 import { connectTele, syncTeleState } from "@/platform/teleConnect";
 import { teleState } from "@/platform/teleState";
 import { registerSiteFunctions } from "@/site-functions/register";
+import "@/utils/testNavigateToSection";
 
 type Journey = "landing" | "connecting" | "talent";
 

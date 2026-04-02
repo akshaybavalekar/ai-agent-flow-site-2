@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Settings } from "lucide-react";
+import { ArrowRight, Settings, TestTube } from "lucide-react";
 import { useState } from "react";
 
 interface EntryPointProps {
@@ -44,6 +44,57 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
       console.error('Error calling getGreetingOptions:', error);
     }
   };
+
+  const handleTestNavigate = () => {
+    const payload = {
+      "badge": "MOBEUS CAREER",
+      "title": "Welcome",
+      "subtitle": "Getting started",
+      "generativeSubsections": [
+        {
+          "id": "3847-A",
+          "templateId": "GlassmorphicOptions",
+          "props": {
+            "bubbles": [
+              {
+                "label": "Yes, I'm ready"
+              },
+              {
+                "label": "Not just yet"
+              },
+              {
+                "label": "Tell me more"
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    console.log("=== MANUAL TEST: Calling navigateToSection ===");
+    console.log("Payload:", JSON.stringify(payload, null, 2));
+    
+    const navigateToSection = (window as any).__siteFunctions?.navigateToSection;
+    
+    if (!navigateToSection) {
+      console.error("❌ navigateToSection not found");
+      alert("navigateToSection not found! Check console.");
+      return;
+    }
+    
+    try {
+      console.log("✅ Calling navigateToSection...");
+      const result = navigateToSection(payload);
+      console.log("=== RESULT ===");
+      console.log("Return value:", result);
+      console.log("Type:", typeof result);
+      alert(`navigateToSection returned: ${JSON.stringify(result)}\n\nCheck console for full details.`);
+    } catch (error) {
+      console.error("❌ Error:", error);
+      alert(`Error: ${error}\n\nCheck console for details.`);
+    }
+  };
+
   return (
     <div
       className="relative w-screen h-[100svh] overflow-hidden flex flex-col"
@@ -127,6 +178,24 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
         >
           Options
           <Settings size={16} />
+        </motion.button>
+
+        <motion.button
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          onClick={handleTestNavigate}
+          className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-base shadow-lg transition-transform active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/50"
+          style={{
+            background: "rgba(255,200,0,0.15)",
+            color: "white",
+            border: "2px solid rgba(255,200,0,0.3)",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 4px 24px rgba(255,200,0,0.1)",
+          }}
+        >
+          Test Navigate
+          <TestTube size={16} />
         </motion.button>
       </div>
 
