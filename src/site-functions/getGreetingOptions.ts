@@ -7,7 +7,7 @@
  * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
 export default function getGreetingOptions() {
-  return {
+  const payload = {
     badge: "MOBEUS CAREER",
     title: "Welcome",
     subtitle: "Getting started",
@@ -25,4 +25,7 @@ export default function getGreetingOptions() {
       }
     ]
   };
+  
+  console.log("[getGreetingOptions] Returning payload:", JSON.stringify(payload, null, 2));
+  return payload;
 }

@@ -48,6 +48,11 @@ export function GlassmorphicOptions({
   progressStep = 0,
   progressTotal = 4,
 }: GlassmorphicOptionsProps) {
+  console.log("[GlassmorphicOptions] Component rendered with props:");
+  console.log("[GlassmorphicOptions] bubbles:", bubbles);
+  console.log("[GlassmorphicOptions] bubbles length:", bubbles?.length);
+  console.log("[GlassmorphicOptions] showProgress:", showProgress);
+  
   const [hasSelected, setHasSelected] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const waitForSelectionHintSentRef = useRef(false);

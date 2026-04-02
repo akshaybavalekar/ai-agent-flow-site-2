@@ -420,14 +420,36 @@ export function usePhaseFlow() {
   const navigateToSection = useCallback(
     (...args: unknown[]): boolean | { disableNewResponseCreation: boolean } => {
       try {
+        console.log("[usePhaseFlow navigateToSection] Raw args received:", args);
+        console.log("[usePhaseFlow navigateToSection] Args length:", args.length);
+        
         const data = normalizeNavigateToSectionPayload(args);
-        if (data == null) return false;
+        console.log("[usePhaseFlow navigateToSection] After normalization:", data);
+        
+        if (data == null) {
+          console.warn("[usePhaseFlow navigateToSection] Data is null after normalization!");
+          return false;
+        }
+        
         const parsed =
           typeof data === "object" && data !== null
             ? data
             : JSON.parse(data as string);
+        console.log("[usePhaseFlow navigateToSection] Parsed data:", parsed);
+        
         const incoming = extractIncomingSections(parsed);
-        if (incoming.length === 0) return false;
+        console.log("[usePhaseFlow navigateToSection] Extracted sections:", incoming);
+        console.log("[usePhaseFlow navigateToSection] Sections count:", incoming.length);
+        
+        if (incoming.length > 0 && incoming[0]) {
+          console.log("[usePhaseFlow navigateToSection] First section templateId:", incoming[0].templateId);
+          console.log("[usePhaseFlow navigateToSection] First section props:", incoming[0].props);
+        }
+        
+        if (incoming.length === 0) {
+          console.warn("[usePhaseFlow navigateToSection] No sections extracted!");
+          return false;
+        }
 
         if (driftTimerRef.current) {
           clearTimeout(driftTimerRef.current);
@@ -704,6 +726,15 @@ export function usePhaseFlow() {
         }
 
         const nextSections = applyIncomingSections(prevSnapshot, incoming);
+        console.log("[usePhaseFlow navigateToSection] Final sections to render:", nextSections);
+        console.log("[usePhaseFlow navigateToSection] Final sections count:", nextSections.length);
+        
+        if (nextSections.length > 0) {
+          const lastSection = nextSections[nextSections.length - 1];
+          console.log("[usePhaseFlow navigateToSection] Last section templateId:", lastSection.templateId);
+          console.log("[usePhaseFlow navigateToSection] Last section props:", lastSection.props);
+          console.log("[usePhaseFlow navigateToSection] Last section props.bubbles:", lastSection.props?.bubbles);
+        }
 
         const fp = getActiveMultiSelectFingerprint(nextSections);
         if (fp == null) {
@@ -713,7 +744,9 @@ export function usePhaseFlow() {
           multiSelectSubmittedRef.current = false;
         }
         sectionsRef.current = nextSections;
+        console.log("[usePhaseFlow navigateToSection] Setting sections to state now...");
         setGenerativeSections(nextSections);
+        console.log("[usePhaseFlow navigateToSection] Sections set to state successfully!");
 
         try {
           const ids = nextSections.map((s) => s.templateId);

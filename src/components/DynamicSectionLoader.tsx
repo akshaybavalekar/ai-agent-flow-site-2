@@ -61,7 +61,14 @@ class ErrorBoundary extends React.Component<
 }
 
 export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
+  console.log("[DynamicSectionLoader] Received sections:", sections);
+  console.log("[DynamicSectionLoader] Sections count:", sections.length);
+  
   const current = sections[sections.length - 1];
+  console.log("[DynamicSectionLoader] Current section:", current);
+  console.log("[DynamicSectionLoader] Current section templateId:", current?.templateId);
+  console.log("[DynamicSectionLoader] Current section props:", current?.props);
+  
   const loadCountRef = useRef(0);
   const prevIdRef = useRef<string>("");
 
@@ -119,9 +126,11 @@ export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
   return (
     <AnimatePresence>
       {sections.map((section) => {
+        console.log("[DynamicSectionLoader RENDER] Mapping section:", section.id, section.templateId);
         const Template = TEMPLATE_REGISTRY[section.templateId];
 
         if (!Template) {
+          console.error("[DynamicSectionLoader RENDER] Template not found for:", section.templateId);
           return (
             <motion.div
               key={section.id}
@@ -138,6 +147,7 @@ export function DynamicSectionLoader({ sections }: DynamicSectionLoaderProps) {
         const sanitizedProps = Object.fromEntries(
           Object.entries(section.props).filter(([, v]) => v !== null)
         );
+        console.log("[DynamicSectionLoader RENDER] Rendering", section.templateId, "with props:", sanitizedProps);
 
         const skipFade = SELF_ANIMATED_TEMPLATES.has(section.templateId);
 
