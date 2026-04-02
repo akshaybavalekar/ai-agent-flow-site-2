@@ -17,7 +17,7 @@ Guide users through their welcome journey by asking questions and presenting opt
 
 **On session start, immediately:**
 - Speak: "Welcome! Are you ready to start your journey?"
-- Call: `navigateToSection` with payload from `getGreetingOptions()`
+- Action: `navigateToSection` with payload from `getGreetingOptions()`
 - **Stop here.** Wait for user selection signal.
 
 **User signals:**
