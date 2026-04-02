@@ -23,11 +23,14 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
         // Extract the first subsection's props for display
         if (result?.generativeSubsections?.[0]) {
           const section = result.generativeSubsections[0];
+          const bubbles = section.props.bubbles || [];
+          const options = bubbles.map((b: any) => b.label).join('|');
+          
           const displayData = {
             badge: result.badge,
             title: result.title,
             subtitle: result.subtitle,
-            options: section.props.options
+            options: options
           };
           setOptionsData(displayData);
           setShowOptions(true);

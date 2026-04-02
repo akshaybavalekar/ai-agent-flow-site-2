@@ -16,8 +16,17 @@ export default function getIndustryOptions() {
         id: "5921-A",
         templateId: "MultiSelectOptions",
         props: {
-          options: "Technology|Finance|Healthcare|Construction|Something else|I'm not sure",
-          progress: { progressStep: 0, progressTotal: 3 }
+          bubbles: [
+            { label: "Technology" },
+            { label: "Finance" },
+            { label: "Healthcare" },
+            { label: "Construction" },
+            { label: "Something else" },
+            { label: "I'm not sure" }
+          ],
+          showProgress: true,
+          progressStep: 0,
+          progressTotal: 3
         }
       }
     ]

@@ -16,7 +16,14 @@ export default function getExplorationOptions() {
         id: "5921-C",
         templateId: "MultiSelectOptions",
         props: {
-          options: "Solving a puzzle or problem|Creating something from scratch|Helping someone through a tough moment|Organising chaos into order|Learning something completely new|Leading a group"
+          bubbles: [
+            { label: "Solving a puzzle or problem" },
+            { label: "Creating something from scratch" },
+            { label: "Helping someone through a tough moment" },
+            { label: "Organising chaos into order" },
+            { label: "Learning something completely new" },
+            { label: "Leading a group" }
+          ]
         }
       }
     ]

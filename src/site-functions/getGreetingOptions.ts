@@ -16,7 +16,11 @@ export default function getGreetingOptions() {
         id: "3847-A",
         templateId: "GlassmorphicOptions",
         props: {
-          options: "Yes, I'm ready|Not just yet|Tell me more"
+          bubbles: [
+            { label: "Yes, I'm ready" },
+            { label: "Not just yet" },
+            { label: "Tell me more" }
+          ]
         }
       }
     ]
