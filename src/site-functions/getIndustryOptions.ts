@@ -1,29 +1,25 @@
 /**
  * getIndustryOptions — Welcome Journey Tool for MOBEUS 2.0
  *
- * Returns industry selection options for Step 5921-A
+ * Returns industry selection options for Step 5921-A in navigateToSection format
  * 
  * Registered as window.__siteFunctions.getIndustryOptions
- * The voice agent can call this via the callSiteFunction RPC.
+ * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
-export default function getIndustryOptions(): {
-  id: string;
-  componentType: 'GlassmorphicOptions' | 'MultiSelectOptions' | 'TextInput' | 'RegistrationForm';
-  options?: string;
-  badge: string;
-  title: string;
-  subtitle: string;
-  progress?: { progressStep: number; progressTotal: number };
-  placeholder?: string;
-  error?: string;
-} {
+export default function getIndustryOptions() {
   return {
-    id: "5921-A",
-    componentType: "MultiSelectOptions",
-    options: "Technology|Finance|Healthcare|Construction|Something else|I'm not sure",
     badge: "MOBEUS CAREER",
     title: "Qualification",
     subtitle: "Step 1 of 3",
-    progress: { progressStep: 0, progressTotal: 3 }
+    generativeSubsections: [
+      {
+        id: "5921-A",
+        templateId: "MultiSelectOptions",
+        props: {
+          options: "Technology|Finance|Healthcare|Construction|Something else|I'm not sure",
+          progress: { progressStep: 0, progressTotal: 3 }
+        }
+      }
+    ]
   };
 }

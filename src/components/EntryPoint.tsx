@@ -18,9 +18,22 @@ export function EntryPoint({ onBegin }: EntryPointProps) {
       const fn = (window as any).__siteFunctions?.getGreetingOptions;
       if (fn) {
         const result = fn();
-        setOptionsData(result);
-        setShowOptions(true);
         console.log('Options data:', result);
+        
+        // Extract the first subsection's props for display
+        if (result?.generativeSubsections?.[0]) {
+          const section = result.generativeSubsections[0];
+          const displayData = {
+            badge: result.badge,
+            title: result.title,
+            subtitle: result.subtitle,
+            options: section.props.options
+          };
+          setOptionsData(displayData);
+          setShowOptions(true);
+        } else {
+          console.error('Invalid response format from getGreetingOptions');
+        }
       } else {
         console.error('getGreetingOptions function not found');
       }
