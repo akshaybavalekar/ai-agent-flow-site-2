@@ -84,8 +84,7 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
     description:
       'navigateToSection (glass contract v2, English only). One root object: badge, title, subtitle, generativeSubsections — each subsection { id?, templateId, props, _update? }. ' +
       'Each call replaces the screen except Dashboard stacks with ProfileSheet, job sheets, learning sheets, etc.; welcome greeting uses GlassmorphicOptions alone (no Dashboard). ' +
-      'TeleSpeechBubble is persistent; questions are spoken, not passed as props. ' +
-      'IMPORTANT: In the welcome journey 2-step pattern, navigateToSection is always called ALONE in its own response with NO speech — speech happens only in the preceding getter call response. ' +
+      'On UI-transition turns: speak + this tool in the same response — never tool-only. TeleSpeechBubble is persistent; questions are spoken, not passed as props. ' +
       'Wait for user signals after: GlassmorphicOptions, MultiSelectOptions, TextInput, RegistrationForm, CandidateSheet, CardStack, SavedJobsStack. ' +
       '_update: true merges delta props into the matching id/templateId without full re-mount. Strict JSON (double quotes, no trailing commas, no comments); omit optional keys — never send null. ' +
       'Reserved: _sessionEstablished (see agent-knowledge execution rule 8; frontend may strip). ' +
