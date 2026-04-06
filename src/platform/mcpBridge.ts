@@ -7,70 +7,30 @@ const inFlight = new Set<string>();
 const skippedInvokeTools = new Set<string>();
 
 /**
- * Extracts a non-empty candidate_id UUID from various response shapes returned by find_candidate.
- * Checks: top-level candidate_id / id, then data.candidate_id / data.id, then data.candidate.id.
+ * The well-known demo candidate ID used across the TrAIn demo environment.
+ * Matches the hardcoded fallback ID used in trainco-v1 (SkillTestFlow, SkillCoverageSheet, TargetRoleSheet).
+ * find_candidate is never called — we use this ID directly to skip that round-trip entirely.
  */
-function extractCandidateId(data: Record<string, unknown>): string | null {
-  for (const key of ["candidate_id", "id"] as const) {
-    const v = data[key];
-    if (typeof v === "string" && v) return v;
-  }
-  const inner = data.data;
-  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
-    const d = inner as Record<string, unknown>;
-    for (const key of ["candidate_id", "id"] as const) {
-      const v = d[key];
-      if (typeof v === "string" && v) return v;
-    }
-    const nested = d.candidate;
-    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
-      const v = (nested as Record<string, unknown>).id;
-      if (typeof v === "string" && v) return v;
-    }
-  }
-  return null;
-}
+export const DEMO_CANDIDATE_ID = "10000000-0000-0000-0000-000000000001";
 
 /**
  * Direct frontend-driven LinkedIn onboarding fetch — bypasses the LLM/Mobeus MCP connection entirely.
+ * Skips find_candidate completely; uses the hardcoded demo candidate ID directly.
  *
  * Flow:
- *   1. POST /api/invoke/find_candidate with the demo email → extract candidate_id
- *   2. POST /api/invoke/get_candidate with candidate_id → load into cache + save session
+ *   1. Call fetchCandidate(DEMO_CANDIDATE_ID) → POST /api/invoke/get_candidate → load into cache + save session
  *
- * Returns the candidate_id string on success, or null on any failure.
- * This is called from the linkedin-continue event handler in usePhaseFlow so the data
- * is ready before the LLM even needs to navigate to CandidateSheet.
+ * Returns the candidate_id string on success, or null on failure.
+ * Called from the linkedin-continue event handler in usePhaseFlow so data is
+ * ready before the LLM needs to navigate to CandidateSheet.
  */
-export async function fetchCandidateByEmail(email: string): Promise<string | null> {
-  const trimmedEmail = email.trim();
-  if (!trimmedEmail) return null;
-  try {
-    const findRes = await fetch("/api/invoke/find_candidate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: trimmedEmail }),
-    });
-    if (!findRes.ok) {
-      console.error("[mcpBridge] find_candidate (direct) failed:", findRes.status);
-      return null;
-    }
-    const findData = await findRes.json() as Record<string, unknown>;
-    const candidateId = extractCandidateId(findData);
-    if (!candidateId) {
-      console.error("[mcpBridge] find_candidate (direct): could not extract candidate_id from", findData);
-      return null;
-    }
-    const fetched = await fetchCandidate(candidateId);
-    if (!fetched) {
-      console.error("[mcpBridge] get_candidate (direct) failed for", candidateId);
-      return null;
-    }
-    return candidateId;
-  } catch (err) {
-    console.error("[mcpBridge] fetchCandidateByEmail error:", err);
+export async function fetchLinkedInDemoCandidate(): Promise<string | null> {
+  const fetched = await fetchCandidate(DEMO_CANDIDATE_ID);
+  if (!fetched) {
+    console.error("[mcpBridge] fetchLinkedInDemoCandidate: get_candidate failed for", DEMO_CANDIDATE_ID);
     return null;
   }
+  return DEMO_CANDIDATE_ID;
 }
 
 async function invokeBridge(
