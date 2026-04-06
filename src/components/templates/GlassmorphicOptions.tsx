@@ -59,10 +59,11 @@ export function GlassmorphicOptions({
 
   const { ready, dismissed, setDismissed } = useSpeechGate({
     hasInteracted: hasSelected,
-    silenceMs: 300,
+    /* Let the avatar finish the question before showing taps (was 250ms — too easy to bundle with model follow-up). */
+    silenceMs: 850,
     dismissSilenceMs: 120_000,
     /* LiveAvatar can hold agentState "speaking" for the whole line — without this, bubbles never mount. */
-    maxReadyWaitMs: 1500,
+    maxReadyWaitMs: 2800,
   });
 
   useEffect(() => {
