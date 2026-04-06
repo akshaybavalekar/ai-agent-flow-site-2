@@ -46,12 +46,11 @@ export function sendLinkedInContinueIntent(
 ): Promise<void> {
   if (options?.steerModel) {
     void teleAcknowledge(
-      "[SYSTEM] LinkedIn path (voice). The canonical `user clicked: Continue with LinkedIn | email: " +
-        email +
-        "` signal is being sent now via TellTele. Execute journey-onboarding Step 6 only: " +
-        "`find_candidate` with that email, then bridge calls. " +
-        "FORBIDDEN on this path: `register_candidate`. " +
-        "If you already started `register_candidate`, abandon it and use `find_candidate` only.",
+      "[SYSTEM] LinkedIn path (voice). " +
+        "Speak 'Connecting with LinkedIn…' and wait. " +
+        "Do NOT call find_candidate, get_candidate, or any MCP tool — " +
+        "the frontend is fetching candidate data directly via REST and will send a [SYSTEM] signal with the CandidateSheet payload when ready. " +
+        "FORBIDDEN on this path: register_candidate, find_candidate, get_candidate.",
       { visible: false },
     );
   }

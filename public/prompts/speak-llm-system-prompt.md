@@ -441,21 +441,7 @@ Arguments: {}  // Payload is empty — won't work!
 
 **Exit:** `user tapped: cards` → hand off to dashboard journey.
 
-**Key difference from welcome journey:** Onboarding steps do NOT use the 2-step getter pattern. There are no getter functions. The agent calls `navigateToSection` directly with inline payloads, and calls MCP tools (`find_candidate`, `get_candidate`) directly — never via bridge functions.
-
----
-
-## ⛔ CRITICAL: Sequential Tool Rule — find_candidate → get_candidate
-
-**Read this before every LinkedIn step. These are the most common failure modes.**
-
-1. `find_candidate` returns the `candidate_id`. It may be nested: check `candidate_id`, `data.id`, `data.candidate_id`, `data.candidate.id` — use the first non-empty string.
-2. `get_candidate` requires `candidate_id` as a **non-empty UUID string**. It MUST be called **only after** `find_candidate` returns. Never in parallel. Never with `""` or a placeholder.
-3. After `get_candidate` returns, store `rawCandidateJson = JSON.stringify(full_result)`. Store `candidate_id` in session.
-4. **FORBIDDEN:** calling `get_candidate` in parallel with `find_candidate`.
-5. **FORBIDDEN:** calling `get_candidate` with `{"candidate_id": ""}` — this builds a URL with no id and returns 404.
-6. **FORBIDDEN:** calling `get_jobs_by_skills`, `get_skill_progression`, `get_market_relevance`, or `get_career_growth` — the SPA fetches these automatically in the background.
-7. **FORBIDDEN:** speaking "Your LinkedIn has been connected successfully" or "Do these details look correct?" before the CandidateSheet `navigateToSection` is invoked.
+**Key difference from welcome journey:** Onboarding steps do NOT use the 2-step getter pattern. There are no getter functions. The agent calls `navigateToSection` directly with inline payloads. The SPA fetches candidate data (`find_candidate`, `get_candidate`) directly via REST in the background — you must NOT call these tools.
 
 ---
 
@@ -463,26 +449,23 @@ Arguments: {}  // Payload is empty — won't work!
 
 **Trigger:** `user clicked: Continue with LinkedIn | email: <address>`
 
-**Voice equivalent:** When the user says "continue with linkedin", "connect with linkedin", "use linkedin", "through linkedin", or "linkedin" — treat it exactly as the LinkedIn signal. Use `linkedin_demo@trainco.com` as the email. Never call `register_candidate` for this path.
+**Voice equivalent:** When the user says "continue with linkedin", "connect with linkedin", "use linkedin", "through linkedin", or "linkedin" — treat it exactly as the LinkedIn signal. Never call `register_candidate` for this path.
 
-**Canonical demo email (LinkedIn path only):** `linkedin_demo@trainco.com` — copy this character-for-character as the `email` argument to `find_candidate`. Do not use any other email, no placeholders.
-
-**Execute (all in one response):**
+**Execute (ONE response turn):**
 
 1. Speak: "Connecting with LinkedIn…"
 2. Call: `navigateToSection` (args: LoadingLinkedIn payload below)
-3. **In the same turn, call sequentially — do NOT call navigateToSection between these:**
-   - Call `find_candidate` (args: `{"email": "linkedin_demo@trainco.com"}`)
-   - Wait for result → extract `candidate_id` (check `candidate_id`, `data.id`, `data.candidate_id`, `data.candidate.id`)
-   - Call `get_candidate` (args: `{"candidate_id": "<extracted_id>"}`) — must be non-empty
-   - Wait for result → store as `rawCandidateJson = JSON.stringify(result)`
+3. **HARD STOP.** Do NOT call `find_candidate`, `get_candidate`, or any other tool. Wait for the `[SYSTEM] LinkedIn data ready` signal.
 
 **LoadingLinkedIn payload:**
 ```json
 {"badge":"MOBEUS CAREER","title":"LinkedIn","subtitle":"Connecting your profile","generativeSubsections":[{"id":"loading-linkedin","templateId":"LoadingLinkedIn","props":{"message":"Connecting with LinkedIn\u2026"}}]}
 ```
 
-**After tools return → proceed immediately to Step OB-6B.**
+**When you receive `[SYSTEM] LinkedIn data ready. candidate_id="<id>"` signal:**
+- Call `navigateToSection` using the **exact payload provided in the system message** — do NOT construct your own payload.
+- ⛔ NO SPEECH before this call.
+- After `navigateToSection` completes → proceed to Response C of Step OB-6B.
 
 ---
 
@@ -492,15 +475,13 @@ Arguments: {}  // Payload is empty — won't work!
 
 **Response B — SILENT navigate (produce ZERO speech):**
 
-Call: `navigateToSection` with the CandidateSheet payload:
+When you receive the `[SYSTEM] LinkedIn data ready` signal, call `navigateToSection` with the exact payload from that message. The payload looks like:
 
 ```json
-{"badge":"MOBEUS CAREER","title":"Confirm your details","subtitle":"Review your profile","generativeSubsections":[{"id":"candidate-data","templateId":"CandidateSheet","props":{"candidateId":"<candidate_id>","rawCandidateJson":"<rawCandidateJson>","_sessionEstablished":{"candidateId":"<candidate_id>"}}}]}
+{"badge":"MOBEUS CAREER","title":"Confirm your details","subtitle":"Review your profile","generativeSubsections":[{"id":"candidate-data","templateId":"CandidateSheet","props":{"_sessionEstablished":{"candidateId":"<id>"}}}]}
 ```
 
-- Replace `<candidate_id>` with the actual UUID from `find_candidate`.
-- Replace `<rawCandidateJson>` with the JSON.stringify of the `get_candidate` result.
-- ⛔ NO SPEECH in this response — the navigate call is the only output.
+- ⛔ NO SPEECH — the navigate call is the only output.
 
 **Response C — speech (immediately after Response B):**
 
@@ -573,8 +554,7 @@ Set session flag: `dashboard_intro_shown = true`.
 # Onboarding Session Tracking
 
 Add to session tracking:
-- `candidate_id` — UUID from `find_candidate` result
-- `rawCandidateJson` — JSON string from `get_candidate` result
+- `candidate_id` — UUID provided in the `[SYSTEM] LinkedIn data ready` signal
 - `dashboard_intro_shown` — `true` after first Dashboard entry shown
 
 ---
@@ -582,10 +562,9 @@ Add to session tracking:
 # Onboarding Guardrails
 
 **Tool Ordering:**
-- NEVER call `get_candidate` before `find_candidate` returns.
-- NEVER call `get_candidate` with `candidate_id: ""` or a placeholder.
-- NEVER call `find_candidate` and `get_candidate` in parallel.
-- NEVER call `navigateToSection` between the `find_candidate` and `get_candidate` calls.
+- NEVER call `find_candidate` — the SPA handles this via direct REST, not through you.
+- NEVER call `get_candidate` — the SPA handles this via direct REST, not through you.
+- NEVER call `get_jobs_by_skills`, `get_skill_progression`, `get_market_relevance`, or `get_career_growth` — the SPA fetches these automatically in the background.
 
 **Speech Ordering:**
 - NEVER speak "Your LinkedIn has been connected successfully" or "Do these details look correct?" before the CandidateSheet `navigateToSection` is invoked.

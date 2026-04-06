@@ -6,6 +6,73 @@ const inFlight = new Set<string>();
 /** Hosted/static deploys (e.g. Mobeus) often omit POST /api/invoke/* — stop retrying after 405/404. */
 const skippedInvokeTools = new Set<string>();
 
+/**
+ * Extracts a non-empty candidate_id UUID from various response shapes returned by find_candidate.
+ * Checks: top-level candidate_id / id, then data.candidate_id / data.id, then data.candidate.id.
+ */
+function extractCandidateId(data: Record<string, unknown>): string | null {
+  for (const key of ["candidate_id", "id"] as const) {
+    const v = data[key];
+    if (typeof v === "string" && v) return v;
+  }
+  const inner = data.data;
+  if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+    const d = inner as Record<string, unknown>;
+    for (const key of ["candidate_id", "id"] as const) {
+      const v = d[key];
+      if (typeof v === "string" && v) return v;
+    }
+    const nested = d.candidate;
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      const v = (nested as Record<string, unknown>).id;
+      if (typeof v === "string" && v) return v;
+    }
+  }
+  return null;
+}
+
+/**
+ * Direct frontend-driven LinkedIn onboarding fetch — bypasses the LLM/Mobeus MCP connection entirely.
+ *
+ * Flow:
+ *   1. POST /api/invoke/find_candidate with the demo email → extract candidate_id
+ *   2. POST /api/invoke/get_candidate with candidate_id → load into cache + save session
+ *
+ * Returns the candidate_id string on success, or null on any failure.
+ * This is called from the linkedin-continue event handler in usePhaseFlow so the data
+ * is ready before the LLM even needs to navigate to CandidateSheet.
+ */
+export async function fetchCandidateByEmail(email: string): Promise<string | null> {
+  const trimmedEmail = email.trim();
+  if (!trimmedEmail) return null;
+  try {
+    const findRes = await fetch("/api/invoke/find_candidate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: trimmedEmail }),
+    });
+    if (!findRes.ok) {
+      console.error("[mcpBridge] find_candidate (direct) failed:", findRes.status);
+      return null;
+    }
+    const findData = await findRes.json() as Record<string, unknown>;
+    const candidateId = extractCandidateId(findData);
+    if (!candidateId) {
+      console.error("[mcpBridge] find_candidate (direct): could not extract candidate_id from", findData);
+      return null;
+    }
+    const fetched = await fetchCandidate(candidateId);
+    if (!fetched) {
+      console.error("[mcpBridge] get_candidate (direct) failed for", candidateId);
+      return null;
+    }
+    return candidateId;
+  } catch (err) {
+    console.error("[mcpBridge] fetchCandidateByEmail error:", err);
+    return null;
+  }
+}
+
 async function invokeBridge(
   toolName: string,
   cacheKey: keyof McpCache,

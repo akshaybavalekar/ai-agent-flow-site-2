@@ -9,11 +9,13 @@ import { generateAiSummary, generateAiGapInsight } from "@/utils/jobInsights";
 import type { SkillRef, SkillGapRef } from "@/utils/jobInsights";
 import {
   fetchCandidate,
+  fetchCandidateByEmail,
   fetchJobs,
   syncLearningState,
   resolveJobsArray,
   patchSiteFunctions,
 } from "@/platform/mcpBridge";
+import { getLinkedInPlaceholderEmail } from "@/utils/teleIntent";
 import { readCache, loadIntoCache as loadIntoCacheBridge } from "@/platform/mcpCacheBridge";
 import { useTeleSpeech } from "@/hooks/useTeleSpeech";
 import { EVENT_NAVIGATE_POP_JOB_BROWSE } from "@/utils/teleUtils";
@@ -836,20 +838,47 @@ export function usePhaseFlow() {
   useEffect(() => {
     const handler = () => {
       loadingLinkedInEnteredAtRef.current = Date.now();
-      setGenerativeSections([
-        {
-          id: "loading-linkedin",
-          templateId: "LoadingLinkedIn",
-          props: { message: "Connecting with LinkedIn\u2026" },
-        },
-      ]);
-      sectionsRef.current = [
-        {
-          id: "loading-linkedin",
-          templateId: "LoadingLinkedIn",
-          props: { message: "Connecting with LinkedIn\u2026" },
-        },
-      ];
+      const loadingSection = {
+        id: "loading-linkedin",
+        templateId: "LoadingLinkedIn",
+        props: { message: "Connecting with LinkedIn\u2026" },
+      };
+      setGenerativeSections([loadingSection]);
+      sectionsRef.current = [loadingSection];
+
+      // Fetch candidate data directly via REST — bypasses LLM/Mobeus MCP entirely.
+      // On success: LLM only needs to call navigateToSection (data already in cache).
+      // On failure: LLM is instructed to fall back to the manual find_candidate path.
+      void (async () => {
+        const candidateId = await fetchCandidateByEmail(getLinkedInPlaceholderEmail());
+        if (candidateId) {
+          void fetchJobs(candidateId);
+          void teleAcknowledge(
+            `[SYSTEM] LinkedIn data ready. candidate_id="${candidateId}". ` +
+            `The candidate profile has been fetched and cached — do NOT call find_candidate or get_candidate. ` +
+            `Call navigateToSection NOW with the exact payload below. Do NOT speak before this call. ` +
+            `Payload: ` +
+            JSON.stringify({
+              badge: "MOBEUS CAREER",
+              title: "Confirm your details",
+              subtitle: "Review your profile",
+              generativeSubsections: [
+                {
+                  id: "candidate-data",
+                  templateId: "CandidateSheet",
+                  props: { _sessionEstablished: { candidateId } },
+                },
+              ],
+            }),
+          );
+        } else {
+          void teleAcknowledge(
+            "[SYSTEM] LinkedIn pre-fetch failed. Proceed manually: " +
+            "call find_candidate with email linkedin_demo@trainco.com, extract candidate_id, " +
+            "call get_candidate with that id, then call navigateToSection with CandidateSheet.",
+          );
+        }
+      })();
     };
     window.addEventListener("linkedin-continue", handler);
     return () => window.removeEventListener("linkedin-continue", handler);
