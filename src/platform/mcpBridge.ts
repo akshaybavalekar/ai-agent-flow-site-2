@@ -3,6 +3,15 @@ import { loadIntoCache, readCache, type McpCache } from "@/platform/mcpCacheBrid
 
 const inFlight = new Set<string>();
 
+/**
+ * Absolute base URL for the MCP REST invoke proxy.
+ * Set NEXT_PUBLIC_MCP_API_BASE=https://train-v1.rapidprototype.ai to enable
+ * direct calls from a static-export SPA (no local /api/invoke/* routes needed).
+ * Falls back to "" (relative URLs) when the env var is not set — matches
+ * Mobeus-hosted deploys where /api/invoke/* is reverse-proxied.
+ */
+const MCP_API_BASE = (process.env.NEXT_PUBLIC_MCP_API_BASE ?? "").replace(/\/$/, "");
+
 /** Hosted/static deploys (e.g. Mobeus) often omit POST /api/invoke/* — stop retrying after 405/404. */
 const skippedInvokeTools = new Set<string>();
 
@@ -15,7 +24,7 @@ async function invokeBridge(
     return undefined;
   }
   try {
-    const res = await fetch(`/api/invoke/${toolName}`, {
+    const res = await fetch(`${MCP_API_BASE}/api/invoke/${toolName}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(args),
@@ -122,7 +131,7 @@ export async function fetchCandidate(candidateId: string): Promise<true | undefi
   if (inFlight.has("candidate")) return undefined;
   inFlight.add("candidate");
   try {
-    const res = await fetch("/api/invoke/get_candidate", {
+    const res = await fetch(`${MCP_API_BASE}/api/invoke/get_candidate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ candidate_id: cid }),
