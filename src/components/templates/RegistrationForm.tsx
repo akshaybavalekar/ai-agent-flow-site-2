@@ -5,20 +5,13 @@ import { CheckCircle, ArrowRight } from "lucide-react";
 import {
   getLinkedInPlaceholderEmail,
   sendRegistrationEmailIntent,
-  sendLinkedInContinueIntent,
 } from "@/utils/teleIntent";
-import { informTele, teleAcknowledge, notifyTele } from "@/utils/teleUtils";
+import { informTele, teleAcknowledge } from "@/utils/teleUtils";
 import { useVoiceTranscriptIntent } from "@/hooks/useVoiceTranscriptIntent";
 import { useBrowserSpeech } from "@/hooks/useBrowserSpeech";
 import { useSpeechFallbackNudge } from "@/hooks/useSpeechFallbackNudge";
 import { matchesLinkedInRegistrationIntent } from "@/utils/voiceMatch";
-import {
-  findCandidateDirect,
-  getCandidateDirect,
-  getJobsBySkillsDirect,
-  getSkillProgressionDirect,
-  isMcpDirectAvailable,
-} from "@/platform/mcpDirectClient";
+import { runLinkedInOnboarding } from "@/platform/mcpDirectClient";
 import { loadIntoCache } from "@/platform/mcpCacheBridge";
 import { saveVisitorSession } from "@/utils/visitorMemory";
 
@@ -51,20 +44,20 @@ interface RegistrationFormProps {
 /**
  * Registration template.
  *
- * LinkedIn path — SPA-DIRECT (when NEXT_PUBLIC_MCP_API_BASE is configured):
- *   1. Dispatches linkedin-continue → usePhaseFlow shows LoadingLinkedIn immediately
- *   2. Calls MCP REST directly: find_candidate → get_candidate →
- *      get_jobs_by_skills + get_skill_progression (simple POST, no SSE session)
- *   3. Loads results into SPA cache
- *   4. Navigates to CandidateSheet via UIFrameworkSiteFunctions
- *   5. Sends notifyTele("[SPA] LinkedIn data loaded…") → triggers agent speech only
- *
- * LinkedIn path — FALLBACK (when NEXT_PUBLIC_MCP_API_BASE is not set or call fails):
- *   Falls back to sendLinkedInContinueIntent → agent handles find_candidate +
- *   bridge functions + navigateToSection as in trainco-v1.
+ * LinkedIn path (DIRECT — no Mobeus LLM for data fetches):
+ *   User clicks "Continue with LinkedIn" OR says a LinkedIn intent by voice.
+ *   → Dispatches linkedin-continue (shows LoadingLinkedIn immediately)
+ *   → Calls MCP server directly: find_candidate → get_candidate →
+ *       get_jobs_by_skills → get_skill_progression (SSE + JSON-RPC)
+ *   → Loads results into SPA cache
+ *   → Programmatically navigates to CandidateSheet via UIFrameworkSiteFunctions
+ *   → Sends informAgent so the voice agent skips MCP tool calls and goes
+ *       straight to CandidateSheet speech ("Your LinkedIn has been connected…")
  *
  * Email path (unchanged):
- *   sendRegistrationEmailIntent → agent calls navigateToSection with LoadingGeneral
+ *   User submits email form
+ *   → sendRegistrationEmailIntent("<address>")
+ *   → AI calls navigateToSection with LoadingGeneral
  */
 export function RegistrationForm({
   prefillEmail,
@@ -122,105 +115,93 @@ export function RegistrationForm({
     if (linkedInIntentConsumedRef.current) return;
     if (mcpInFlightRef.current) return;
     linkedInIntentConsumedRef.current = true;
-
-    const email = getLinkedInPlaceholderEmail();
-
-    // If the MCP API base URL is not configured, fall straight back to the
-    // agent-driven path (trainco-v1 behaviour — no code change needed).
-    if (!isMcpDirectAvailable()) {
-      setDismissed(true);
-      window.dispatchEvent(new CustomEvent("linkedin-continue"));
-      void sendLinkedInContinueIntent(email, { steerModel: source === "voice" });
-      return;
-    }
-
     mcpInFlightRef.current = true;
     setDismissed(true);
 
-    // Show LoadingLinkedIn immediately (no LLM round-trip needed)
+    // Show LoadingLinkedIn immediately — no agent round-trip needed for the visual
     window.dispatchEvent(new CustomEvent("linkedin-continue"));
 
-    // Tell the agent to stay quiet — SPA is handling all data fetches
+    const email = getLinkedInPlaceholderEmail();
+
+    // Tell the agent to skip MCP tools — SPA is handling find/get directly
     void teleAcknowledge(
-      "[SYSTEM] SPA is running direct MCP calls for LinkedIn. " +
-        "Do NOT call find_candidate, get_candidate, fetchCandidate, fetchJobs, fetchSkills, register_candidate. " +
-        "Wait for the `[SPA] LinkedIn data loaded` signal, then speak only.",
+      "[SYSTEM] SPA is running find_candidate → get_candidate → get_jobs_by_skills → get_skill_progression " +
+        "directly via MCP. Do NOT call these tools yourself. " +
+        "When the SPA signals `[SPA] LinkedIn data loaded`, call navigateToSection with CandidateSheet " +
+        "using the candidateId from that signal, then speak your Response C lines. " +
+        "FORBIDDEN on this path: register_candidate, find_candidate, get_candidate.",
     );
 
-    const runDirectFlow = async () => {
-      // Step 1: find_candidate
-      const candidateId = await findCandidateDirect(email);
+    void runLinkedInOnboarding(email)
+      .then(({ candidateId, candidate, jobs, skills }) => {
+        // Populate SPA cache so CandidateSheet, CardStack, SkillCoverage auto-hydrate
+        loadIntoCache("candidate", candidate);
+        if (jobs) loadIntoCache("jobs", jobs);
+        if (skills) loadIntoCache("skills", skills);
+        saveVisitorSession(candidateId);
 
-      // Step 2: get_candidate (sequential — must follow find_candidate)
-      const candidate = await getCandidateDirect(candidateId);
+        // Navigate to CandidateSheet programmatically — same contract the agent uses
+        const navigate = (
+          window as unknown as {
+            UIFrameworkSiteFunctions?: {
+              navigateToSection?: (args: unknown) => unknown;
+            };
+          }
+        ).UIFrameworkSiteFunctions?.navigateToSection;
 
-      // Step 3: jobs + skills in parallel (both non-fatal)
-      const [jobs, skills] = await Promise.all([
-        getJobsBySkillsDirect(candidateId, 6),
-        getSkillProgressionDirect("ai-engineer"),
-      ]);
-
-      // Populate SPA cache — CandidateSheet, CardStack, SkillCoverage auto-hydrate
-      loadIntoCache("candidate", candidate);
-      if (jobs) loadIntoCache("jobs", jobs);
-      if (skills) loadIntoCache("skills", skills);
-      saveVisitorSession(candidateId);
-
-      // Navigate to CandidateSheet programmatically (same payload the agent uses)
-      const navigate = (
-        window as unknown as {
-          UIFrameworkSiteFunctions?: {
-            navigateToSection?: (args: unknown) => unknown;
-          };
-        }
-      ).UIFrameworkSiteFunctions?.navigateToSection;
-
-      if (typeof navigate === "function") {
-        navigate({
-          badge: "MOBEUS CAREER",
-          title: "Confirm your details",
-          subtitle: "Review your profile",
-          generativeSubsections: [
-            {
-              id: "candidate-data",
-              templateId: "CandidateSheet",
-              props: {
-                candidateId,
-                _sessionEstablished: { candidateId },
+        if (typeof navigate === "function") {
+          navigate({
+            badge: "MOBEUS CAREER",
+            title: "Confirm your details",
+            subtitle: "Review your profile",
+            generativeSubsections: [
+              {
+                id: "candidate-data",
+                templateId: "CandidateSheet",
+                props: {
+                  candidateId,
+                  _sessionEstablished: { candidateId },
+                },
               },
-            },
-          ],
-        });
-      }
+            ],
+          });
+        }
 
-      // notifyTele (visible message) → TRIGGERS agent to speak Response C.
-      // The agent was primed above to skip tool calls on this signal.
-      await notifyTele(
-        `[SPA] LinkedIn data loaded. candidate_id: ${candidateId}. ` +
-          "CandidateSheet is on screen. Speak now: " +
-          '"Your LinkedIn has been connected successfully." ' +
-          '"Do these details look correct?" ' +
-          "HARD STOP after that — wait for `user clicked: Looks Good`.",
-        { skipNavigateDrift: true },
-      );
-    };
+        // Tell the agent where we are so it delivers the correct speech
+        void teleAcknowledge(
+          `[SPA] LinkedIn data loaded. candidate_id: ${candidateId}. ` +
+            "CandidateSheet is now on screen. " +
+            "Speak Response C exactly: " +
+            '"Your LinkedIn has been connected successfully." ' +
+            '"Do these details look correct?" ' +
+            "Then HARD STOP — wait for `user clicked: Looks Good`.",
+        );
+      })
+      .catch((err: unknown) => {
+        mcpInFlightRef.current = false;
+        linkedInIntentConsumedRef.current = false;
+        console.error("[RegistrationForm] MCP LinkedIn flow failed:", err);
 
-    void runDirectFlow().catch((err: unknown) => {
-      mcpInFlightRef.current = false;
-      linkedInIntentConsumedRef.current = false;
-      console.error("[RegistrationForm] Direct MCP LinkedIn flow failed:", err);
+        // Fallback: let the agent handle it the old way
+        void teleAcknowledge(
+          `[SYSTEM] SPA direct MCP call failed (${String(err)}). ` +
+            "Fall back: call find_candidate, get_candidate, navigateToSection yourself. " +
+            `Email: ${email}`,
+        );
 
-      // Fallback: hand the full flow back to the agent
+        // Re-show the form so the user can retry
+        setDismissed(false);
+        linkedInIntentConsumedRef.current = false;
+      });
+
+    // Voice source: also notify agent with the canonical signal text so
+    // any voice transcript listeners are aligned
+    if (source === "voice") {
       void teleAcknowledge(
-        `[SYSTEM] SPA direct MCP call failed (${String(err)}). ` +
-          "Resume normal flow: call find_candidate(email=${email}), fetchCandidate, fetchJobs, fetchSkills, " +
-          "then navigateToSection CandidateSheet.",
+        `[SYSTEM] LinkedIn path (voice). Signal: user clicked: Continue with LinkedIn | email: ${email}. ` +
+          "SPA is handling MCP calls directly — do NOT call find_candidate or get_candidate.",
       );
-      void sendLinkedInContinueIntent(email, { steerModel: source === "voice" });
-
-      setDismissed(false);
-      linkedInIntentConsumedRef.current = false;
-    });
+    }
   }, []);
 
   const voiceLinkedInEnabled = !dismissed && regStep === "form";
