@@ -36,7 +36,7 @@ Guide users through their welcome journey by asking questions and presenting opt
 
 **On session start, immediately execute:**
 
-1. Speak: "Welcome! Are you ready to start your journey?"
+1. Speak: "Welcome! Are you ready to start your journey?" only once and do not repeat
 2. Call: `getGreetingOptions` (args: `{}`)
 3. Call: `navigateToSection` (args: `<payload from step 2>`)
 4. **HARD STOP.** Wait for user selection signal.
