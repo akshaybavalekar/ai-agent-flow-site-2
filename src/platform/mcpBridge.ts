@@ -6,6 +6,17 @@ const inFlight = new Set<string>();
 /** Hosted/static deploys (e.g. Mobeus) often omit POST /api/invoke/* — stop retrying after 405/404. */
 const skippedInvokeTools = new Set<string>();
 
+// ── MCP server URL (baked in at build time via NEXT_PUBLIC_MCP_SERVER_URL) ─────────────────────
+// Strip a trailing "/mcp" so the env var can be either the base domain or the full MCP path.
+// e.g. "https://train-v1.rapidprototype.ai" or "https://train-v1.rapidprototype.ai/mcp"
+const MCP_SERVER_URL = (process.env.NEXT_PUBLIC_MCP_SERVER_URL ?? "").replace(/\/mcp\/?$/, "").trim();
+const MCP_ORIGIN = (() => {
+  if (!MCP_SERVER_URL) return "";
+  try { return new URL(MCP_SERVER_URL).origin; } catch { return MCP_SERVER_URL; }
+})();
+
+// ── Helpers ──────────────────────────────────────────────────────────────────────────────────────
+
 /**
  * Extracts a non-empty candidate_id UUID from various response shapes returned by find_candidate.
  * Checks: top-level candidate_id / id, then data.candidate_id / data.id, then data.candidate.id.
@@ -32,40 +43,240 @@ function extractCandidateId(data: Record<string, unknown>): string | null {
 }
 
 /**
- * Direct frontend-driven LinkedIn onboarding fetch — bypasses the LLM/Mobeus MCP connection entirely.
- *
- * Flow:
- *   1. POST /api/invoke/find_candidate with the demo email → extract candidate_id
- *   2. POST /api/invoke/get_candidate with candidate_id → load into cache + save session
- *
- * Returns the candidate_id string on success, or null on any failure.
- * This is called from the linkedin-continue event handler in usePhaseFlow so the data
- * is ready before the LLM even needs to navigate to CandidateSheet.
+ * Unwraps `{ success, data: { ... } }` or `{ result: { ... } }` wrappers
+ * to get the actual candidate record.
  */
+function unwrapCandidateResponse(payload: unknown): Record<string, unknown> {
+  if (!payload || typeof payload !== "object") return {};
+  const obj = payload as Record<string, unknown>;
+  for (const key of ["data", "result"] as const) {
+    const inner = obj[key];
+    if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+      return inner as Record<string, unknown>;
+    }
+  }
+  return obj;
+}
+
+// ── Browser-side MCP SSE client ──────────────────────────────────────────────────────────────────
+//
+// Implements the MCP SSE + JSON-RPC 2.0 session lifecycle directly in the browser.
+// This mirrors trainco-v1/server/mcpInvoke.ts (which runs server-side in Express).
+// Works because the MCP server uses allow_origins=["*"] by default.
+//
+// Protocol:
+//   1. Open EventSource to {MCP_SERVER_URL}/mcp/sse — server sends "endpoint" event with path
+//   2. POST "initialize" JSON-RPC to that path
+//   3. POST "notifications/initialized" (no-id) then wait 200ms
+//   4. POST "tools/call" → read result from SSE "message" event → close SSE
+//
+const MCP_SSE_TIMEOUT_MS = 15_000;
+
+interface JsonRpcMsg {
+  jsonrpc: string;
+  id?: number;
+  result?: unknown;
+  error?: { code: number; message: string };
+}
+
+async function invokeViaMcpSse(
+  toolName: string,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  if (!MCP_SERVER_URL) return null;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: unknown) => {
+      if (settled) return;
+      settled = true;
+      es.close();
+      clearTimeout(timer);
+      resolve(value);
+    };
+
+    const timer = setTimeout(() => {
+      console.warn(`[mcpBridge] MCP SSE timeout for ${toolName}`);
+      finish(null);
+    }, MCP_SSE_TIMEOUT_MS);
+
+    const es = new EventSource(`${MCP_SERVER_URL}/mcp/sse`);
+    let messagesEndpoint = "";
+    let nextId = 1;
+    const pending = new Map<number, (msg: JsonRpcMsg) => void>();
+
+    const postMsg = (method: string, params: Record<string, unknown>, id?: number): void => {
+      const body: Record<string, unknown> = { jsonrpc: "2.0", method, params };
+      if (id !== undefined) body.id = id;
+      fetch(messagesEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }).catch(() => finish(null));
+    };
+
+    const rpc = (
+      method: string,
+      params: Record<string, unknown>,
+      needsResponse: boolean,
+    ): Promise<JsonRpcMsg | void> => {
+      if (needsResponse) {
+        const id = nextId++;
+        return new Promise<JsonRpcMsg>((res) => {
+          pending.set(id, res);
+          postMsg(method, params, id);
+        });
+      }
+      postMsg(method, params);
+      return Promise.resolve();
+    };
+
+    es.addEventListener("endpoint", (e: Event) => {
+      const path = (e as MessageEvent).data?.trim() ?? "";
+      messagesEndpoint = path.startsWith("http") ? path : `${MCP_ORIGIN}${path}`;
+
+      void (async () => {
+        try {
+          // Step 1: initialize
+          await rpc(
+            "initialize",
+            {
+              protocolVersion: "2024-11-05",
+              capabilities: {},
+              clientInfo: { name: "trainco-bridge", version: "1.0" },
+            },
+            true,
+          );
+
+          // Step 2: initialized notification
+          await rpc("notifications/initialized", {}, false);
+          await new Promise<void>((r) => setTimeout(r, 200));
+
+          // Step 3: call tool
+          const toolResp = await rpc(
+            "tools/call",
+            { name: toolName, arguments: args },
+            true,
+          ) as JsonRpcMsg;
+
+          if (toolResp.error) {
+            console.error(`[mcpBridge] MCP tool ${toolName} error:`, toolResp.error);
+            finish(null);
+            return;
+          }
+
+          const content = (toolResp.result as { content?: { type: string; text: string }[] })?.content;
+          if (!content?.length) {
+            console.error(`[mcpBridge] MCP tool ${toolName}: empty response`);
+            finish(null);
+            return;
+          }
+
+          const text = content.map((c) => c.text ?? "").join("");
+          try {
+            finish(JSON.parse(text));
+          } catch {
+            finish(text);
+          }
+        } catch (err) {
+          console.error(`[mcpBridge] MCP SSE invoke error for ${toolName}:`, err);
+          finish(null);
+        }
+      })();
+    });
+
+    es.addEventListener("message", (e: Event) => {
+      try {
+        const msg = JSON.parse((e as MessageEvent).data) as JsonRpcMsg;
+        if (msg.id !== undefined && pending.has(msg.id)) {
+          const cb = pending.get(msg.id)!;
+          pending.delete(msg.id);
+          cb(msg);
+        }
+      } catch { /* ignore non-JSON SSE frames */ }
+    });
+
+    es.onerror = () => {
+      console.warn(`[mcpBridge] MCP SSE connection error for ${toolName}`);
+      finish(null);
+    };
+  });
+}
+
+// ── LinkedIn onboarding: direct candidate fetch (no LLM involvement) ─────────────────────────────
+//
+// Calls find_candidate → get_candidate directly from the browser.
+// Primary path: browser-side MCP SSE (EventSource + JSON-RPC 2.0) via NEXT_PUBLIC_MCP_SERVER_URL.
+// Fallback path: /api/invoke/ REST proxy (works in trainco-v1 Express server deployments).
+//
+// Flow:
+//   1. find_candidate(email) → extract candidate_id
+//   2. get_candidate(candidate_id) → load full profile into cache + save session
+//
+// Returns the candidate_id on success, null on any failure.
+// Called from the linkedin-continue event handler in usePhaseFlow.ts so the data
+// is ready before the LLM receives the [SYSTEM] signal to call navigateToSection.
+//
 export async function fetchCandidateByEmail(email: string): Promise<string | null> {
   const trimmedEmail = email.trim();
   if (!trimmedEmail) return null;
+
   try {
-    const findRes = await fetch("/api/invoke/find_candidate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: trimmedEmail }),
-    });
-    if (!findRes.ok) {
-      console.error("[mcpBridge] find_candidate (direct) failed:", findRes.status);
-      return null;
+    // ── Step 1: find_candidate ────────────────────────────────────────────────
+    let findData: Record<string, unknown> | null = null;
+
+    if (MCP_SERVER_URL) {
+      console.log("[mcpBridge] find_candidate via MCP SSE:", trimmedEmail);
+      const result = await invokeViaMcpSse("find_candidate", { email: trimmedEmail });
+      if (result && typeof result === "object" && !Array.isArray(result)) {
+        findData = result as Record<string, unknown>;
+        console.log("[mcpBridge] find_candidate MCP SSE result:", findData);
+      }
     }
-    const findData = await findRes.json() as Record<string, unknown>;
+
+    if (!findData) {
+      // Fallback: /api/invoke/ REST proxy (trainco-v1 server or Mobeus invoke route)
+      console.log("[mcpBridge] find_candidate fallback via /api/invoke/:", trimmedEmail);
+      const findRes = await fetch("/api/invoke/find_candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      if (!findRes.ok) {
+        console.error("[mcpBridge] find_candidate /api/invoke/ failed:", findRes.status);
+        return null;
+      }
+      findData = await findRes.json() as Record<string, unknown>;
+    }
+
     const candidateId = extractCandidateId(findData);
     if (!candidateId) {
-      console.error("[mcpBridge] find_candidate (direct): could not extract candidate_id from", findData);
+      console.error("[mcpBridge] find_candidate: could not extract candidate_id from", findData);
       return null;
     }
+
+    console.log("[mcpBridge] find_candidate resolved candidate_id:", candidateId);
+
+    // ── Step 2: get_candidate ─────────────────────────────────────────────────
+    if (MCP_SERVER_URL) {
+      console.log("[mcpBridge] get_candidate via MCP SSE:", candidateId);
+      const result = await invokeViaMcpSse("get_candidate", { candidate_id: candidateId });
+      if (result && typeof result === "object") {
+        const candidate = unwrapCandidateResponse(result);
+        loadIntoCache("candidate", candidate);
+        saveVisitorSession(candidateId);
+        console.log("[mcpBridge] get_candidate MCP SSE loaded into cache for", candidateId);
+        return candidateId;
+      }
+    }
+
+    // Fallback: existing fetchCandidate (/api/invoke/get_candidate)
     const fetched = await fetchCandidate(candidateId);
     if (!fetched) {
-      console.error("[mcpBridge] get_candidate (direct) failed for", candidateId);
+      console.error("[mcpBridge] get_candidate fallback also failed for", candidateId);
       return null;
     }
+
     return candidateId;
   } catch (err) {
     console.error("[mcpBridge] fetchCandidateByEmail error:", err);
@@ -171,24 +382,24 @@ export async function fetchSkills(roleId: string): Promise<true | undefined> {
   }
 }
 
-function unwrapCandidateResponse(payload: unknown): Record<string, unknown> {
-  if (!payload || typeof payload !== "object") return {};
-  const obj = payload as Record<string, unknown>;
-  for (const key of ["data", "result"] as const) {
-    const inner = obj[key];
-    if (inner && typeof inner === "object" && !Array.isArray(inner)) {
-      return inner as Record<string, unknown>;
-    }
-  }
-  return obj;
-}
-
 export async function fetchCandidate(candidateId: string): Promise<true | undefined> {
   if (!candidateId?.trim()) return undefined;
   const cid = candidateId.trim();
   if (inFlight.has("candidate")) return undefined;
   inFlight.add("candidate");
   try {
+    // Primary: browser-side MCP SSE (works when NEXT_PUBLIC_MCP_SERVER_URL is set)
+    if (MCP_SERVER_URL) {
+      const result = await invokeViaMcpSse("get_candidate", { candidate_id: cid });
+      if (result && typeof result === "object") {
+        const candidate = unwrapCandidateResponse(result);
+        loadIntoCache("candidate", candidate);
+        saveVisitorSession(cid);
+        return true;
+      }
+    }
+
+    // Fallback: /api/invoke/get_candidate (trainco-v1 Express server or Mobeus invoke route)
     const res = await fetch("/api/invoke/get_candidate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
