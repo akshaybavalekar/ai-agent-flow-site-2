@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { FloatingAnswerBubbles } from "@/components/FloatingAnswerBubbles";
 import { MiniProgress } from "@/components/MiniProgress";
-import { informTele, teleAcknowledge } from "@/utils/teleUtils";
+import { informTele } from "@/utils/teleUtils";
 import {
   sendInvalidOptionVoiceIntent,
   sendSelectionIntent,
@@ -85,13 +85,6 @@ export function GlassmorphicOptions({
       setSelectedLabel(option.value ?? option.label);
       const label = option.value ?? option.label;
       void sendSelectionIntent(label);
-      void teleAcknowledge(
-        `[SYSTEM] The user just selected "${label}". ` +
-        `You are Mobeus, a career guidance agent for TrAIn — stay in that role. ` +
-        `You MUST immediately execute the correct next Journey Flow step for this signal. ` +
-        `Speak the scripted sentence for that step, call its getter function, then call navigateToSection — all in ONE response turn. ` +
-        `Do NOT respond with anything unrelated to the TrAIn career journey.`
-      );
       console.log("USER SELECTED:", label);
       setTimeout(() => setDismissed(true), 500);
     },
