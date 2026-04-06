@@ -7,7 +7,7 @@
  * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
 export default function getPriorityOptions() {
-  const payload = {
+  return {
     badge: 'MOBEUS CAREER',
     title: 'Qualification',
     subtitle: 'Step 3 of 3',
@@ -28,7 +28,4 @@ export default function getPriorityOptions() {
       },
     ],
   };
-
-  console.log("[getPriorityOptions] Returning payload:", JSON.stringify(payload, null, 2));
-  return payload;
 }

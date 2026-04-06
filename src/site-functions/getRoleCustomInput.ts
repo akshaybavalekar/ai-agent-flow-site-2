@@ -7,7 +7,7 @@
  * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
 export default function getRoleCustomInput() {
-  const payload = {
+  return {
     badge: 'MOBEUS CAREER',
     title: 'Qualification',
     subtitle: 'Step 2 of 3',
@@ -21,7 +21,4 @@ export default function getRoleCustomInput() {
       },
     ],
   };
-
-  console.log("[getRoleCustomInput] Returning payload:", JSON.stringify(payload, null, 2));
-  return payload;
 }

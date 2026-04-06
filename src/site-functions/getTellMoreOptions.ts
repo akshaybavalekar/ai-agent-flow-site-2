@@ -7,7 +7,7 @@
  * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
 export default function getTellMoreOptions() {
-  const payload = {
+  return {
     badge: "MOBEUS CAREER",
     title: "Welcome",
     subtitle: "About TrAIn",
@@ -28,7 +28,4 @@ export default function getTellMoreOptions() {
       }
     ]
   };
-
-  console.log("[getTellMoreOptions] Returning payload:", JSON.stringify(payload, null, 2));
-  return payload;
 }

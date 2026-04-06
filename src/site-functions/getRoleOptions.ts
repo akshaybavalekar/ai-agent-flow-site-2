@@ -56,7 +56,7 @@ export default function getRoleOptions(args: { industry?: string }) {
     { label: "I'm not sure" },
   ];
 
-  const payload = {
+  return {
     badge: 'MOBEUS CAREER',
     title: 'Qualification',
     subtitle: 'Step 2 of 3',
@@ -68,7 +68,4 @@ export default function getRoleOptions(args: { industry?: string }) {
       },
     ],
   };
-
-  console.log("[getRoleOptions] Returning payload:", JSON.stringify(payload, null, 2));
-  return payload;
 }
