@@ -73,9 +73,8 @@ export function GlassmorphicOptions({
       "[SYSTEM] GlassmorphicOptions: answer bubbles are on screen and pointer-events are enabled. " +
         "Do NOT call navigateToSection or advance to the next journey step until the user selects one option. " +
         "You will receive `user selected: <label>` via TellTele when they tap a bubble or speak a matching label. " +
-        "STAY COMPLETELY SILENT — do NOT speak any acknowledgment, filler, or waiting phrase of any kind. " +
-        "Do NOT say 'Waiting for your selection', 'Take your time', 'Go ahead and choose', or anything similar. " +
-        "This system message requires NO verbal response — process it silently and wait for the user signal."
+        "Until then, stay silent or give at most one short acknowledgment if the user speaks off-script — " +
+        "do not ask the next interview question (e.g. industry) or narrate the next screen."
     );
   }, [ready, dismissed]);
 
