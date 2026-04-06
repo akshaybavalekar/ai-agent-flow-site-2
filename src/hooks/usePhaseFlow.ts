@@ -405,7 +405,7 @@ function lookupJobFromCache(
   return null;
 }
 
-const NAVIGATE_DRIFT_TIMEOUT_MS = 15000;
+const NAVIGATE_DRIFT_TIMEOUT_MS = 5000;
 
 export function usePhaseFlow() {
   const [generativeSubsections, setGenerativeSections] =
@@ -903,8 +903,8 @@ export function usePhaseFlow() {
         if (lastNavigateAtRef.current === stampBefore) {
           teleAcknowledge(
             "[SYSTEM CORRECTION] You spoke but FORGOT to call navigateToSection. " +
-              "Trigger ONLY the missing part: call navigateToSection NOW with the payload for this step. " +
-              "Do NOT speak again. Do NOT list or read options. Do NOT repeat what you already said. Just call the tool.",
+              "Fix this NOW in a single response turn: call the getter function for the current step to re-fetch the payload, then IMMEDIATELY call navigateToSection with the result — both in this one response. " +
+              "Do NOT speak again. Do NOT repeat what you already said. Only the two tool calls.",
           );
         }
       }, NAVIGATE_DRIFT_TIMEOUT_MS);
