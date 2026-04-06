@@ -45,19 +45,18 @@ export function sendLinkedInContinueIntent(
   options?: SendLinkedInContinueOptions,
 ): Promise<void> {
   if (options?.steerModel) {
+    // Voice path: user spoke the command — the voice recognition already created
+    // an agent turn. Steer it to HARD STOP and await "candidate ready".
     void teleAcknowledge(
-      "[SYSTEM] LinkedIn path (voice). The canonical `user clicked: Continue with LinkedIn | email: " +
-        email +
-        "` signal is being sent now via TellTele. Execute onboarding Step OB-6A only: " +
-        "speak 'Connecting with LinkedIn…', call navigateToSection with LoadingLinkedIn, " +
-        "then call `find_candidate` with email " +
-        email +
-        ", call `get_candidate` with the returned candidate_id, then call navigateToSection with CandidateSheet. " +
-        "FORBIDDEN on this path: `register_candidate`. " +
-        "If you already started `register_candidate`, abandon it and use `find_candidate` only.",
+      "[SYSTEM] LinkedIn path (voice). " +
+        "The UI is handling findCandidate + getCandidate automatically — do NOT call any backend tools. " +
+        "HARD STOP and await the `[SYSTEM] candidate ready` data-channel signal before speaking.",
       { visible: false },
     );
   }
+  // Click path: no additional signal sent to the agent here.
+  // The `linkedin-continue` DOM event resets the speaking counter and block flag.
+  // The real agent turn fires via notifyTele once findCandidate resolves.
   return notifyTele(`user clicked: Continue with LinkedIn | email: ${email}`, {
     skipNavigateDrift: true,
   });

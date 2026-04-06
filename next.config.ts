@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  env: {
+    MCP_SERVER_URL: process.env.MCP_SERVER_URL,
+  },
 };
 
 export default nextConfig;

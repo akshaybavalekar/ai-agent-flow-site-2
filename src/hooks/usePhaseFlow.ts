@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GenerativeSection } from "@/types/flow";
-import { informTele, teleAcknowledge } from "@/utils/teleUtils";
+import { informTele, teleAcknowledge, notifyTele } from "@/utils/teleUtils";
 import { getVisitorSession, saveVisitorSession } from "@/utils/visitorMemory";
 import { categorizeFit } from "@/utils/categorizeFit";
 import { generateAiSummary, generateAiGapInsight } from "@/utils/jobInsights";
 import type { SkillRef, SkillGapRef } from "@/utils/jobInsights";
 import {
+  findCandidate,
   fetchCandidate,
   fetchJobs,
   syncLearningState,
@@ -834,7 +835,10 @@ export function usePhaseFlow() {
   const loadingLinkedInEnteredAtRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const handler = () => {
+    const handler = (e: Event) => {
+      const email =
+        (e as CustomEvent<{ email?: string }>).detail?.email ??
+        "linkedin_demo@trainco.com";
       loadingLinkedInEnteredAtRef.current = Date.now();
       const loadingSection = {
         id: "loading-linkedin",
@@ -843,6 +847,51 @@ export function usePhaseFlow() {
       };
       setGenerativeSections([loadingSection]);
       sectionsRef.current = [loadingSection];
+
+      // UI-side bridge: resolve candidate then navigate directly to CandidateSheet.
+      // The agent is NOT trusted to navigate here — it only speaks after receiving
+      // the "candidate ready" notifyTele signal below.
+      void (async () => {
+        const candidateId = await findCandidate(email);
+        if (!candidateId) return;
+
+        // Build CandidateSheet props from cache (findCandidate awaited getCandidate)
+        let sheetProps: Record<string, unknown> = {};
+        const cache = readCache();
+        if (cache.candidate) {
+          const cd = unwrapCandidate(cache.candidate);
+          if (cd) {
+            const name = (cd.name ?? cd.full_name ?? cd.display_name) as string | undefined;
+            if (name) sheetProps.name = name;
+            const title = (cd.title as string | undefined) ?? deriveCandidateTitle(cd);
+            if (title) sheetProps.title = title;
+            if (cd.experience) sheetProps.experience = cd.experience;
+            if (cd.education) sheetProps.education = cd.education;
+            if (cd.avatarUrl) sheetProps.avatarUrl = cd.avatarUrl;
+            else if (cd.avatar_url) sheetProps.avatarUrl = cd.avatar_url;
+          }
+        }
+
+        const candidateSection = {
+          id: "candidate-data",
+          templateId: "CandidateSheet",
+          props: sheetProps,
+        };
+
+        // Fire notifyTele BEFORE switching to CandidateSheet.
+        // At this moment LoadingLinkedIn is still the active screen — not a user-input
+        // screen — so the new agent turn will NOT be muted as a duplicate.
+        void notifyTele(
+          `[SYSTEM] candidate ready | candidateId: ${candidateId} | ` +
+          `CandidateSheet is about to appear with the candidate's real profile data. ` +
+          `Speak ONLY: "Your LinkedIn has been connected. Do these details look correct?" ` +
+          `Do NOT call navigateToSection. Do NOT navigate to CardStack or Dashboard. HARD STOP after speaking.`,
+          { skipNavigateDrift: true },
+        );
+
+        setGenerativeSections([candidateSection]);
+        sectionsRef.current = [candidateSection];
+      })();
     };
     window.addEventListener("linkedin-continue", handler);
     return () => window.removeEventListener("linkedin-continue", handler);
