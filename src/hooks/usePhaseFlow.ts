@@ -720,7 +720,9 @@ export function usePhaseFlow() {
         if (incoming.some((s) => s.templateId === "GlassmorphicOptions")) {
           informTele(
             "[SYSTEM HARD STOP] GlassmorphicOptions is now on screen. " +
-              "Do NOT generate any more speech, audio, or tool calls. " +
+              "Do NOT generate any speech, audio, or tool calls whatsoever. " +
+              "Do NOT say 'Waiting for your selection', 'Take your time', 'Go ahead and choose', or any phrase that narrates the waiting state. " +
+              "This system message requires NO verbal acknowledgment — process it silently with zero speech output. " +
               "Wait ONLY for `user selected:` from TellTele before your next response.",
           );
         }
