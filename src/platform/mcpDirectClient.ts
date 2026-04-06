@@ -1,30 +1,28 @@
 /**
- * mcpDirectClient — simple REST client for direct MCP tool calls.
+ * mcpDirectClient — direct MCP tool calls via the Mobeus /api/invoke proxy.
  *
- * Uses the Express-style proxy endpoint on the MCP server:
- *   POST {NEXT_PUBLIC_MCP_API_BASE}/api/invoke/{toolName}
+ * Uses simple REST: POST /api/invoke/{toolName}
+ * No SSE, no session management, no find_candidate step.
  *
- * No SSE, no session management — just a single POST per tool.
- * This matches the trainco-v1 bridge pattern but with an absolute base URL
- * so it works from a static-export SPA (no local /api/invoke/* routes).
- *
- * The base URL is configured via NEXT_PUBLIC_MCP_API_BASE env var.
- * Example: https://train-v1.rapidprototype.ai
+ * For the LinkedIn demo path the candidate ID is hardcoded
+ * (prototype — always the same seeded demo candidate).
+ * All /api/invoke/* routes are proxied by Mobeus automatically.
  */
 
 const MCP_API_BASE = (
   process.env.NEXT_PUBLIC_MCP_API_BASE ?? ""
 ).replace(/\/$/, "");
 
+/**
+ * Hardcoded demo candidate ID for the LinkedIn prototype path.
+ * find_candidate is skipped — we go straight to get_candidate with this ID.
+ */
+export const LINKEDIN_DEMO_CANDIDATE_ID = "943cde97-e51f-4f68-bad6-14f50359700b";
+
 async function invokeToolDirect(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
-  if (!MCP_API_BASE) {
-    throw new Error(
-      `[mcpDirect] NEXT_PUBLIC_MCP_API_BASE is not set. Cannot call ${toolName} directly.`,
-    );
-  }
   const res = await fetch(`${MCP_API_BASE}/api/invoke/${toolName}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -38,44 +36,10 @@ async function invokeToolDirect(
   return res.json();
 }
 
-// ─── Candidate-id extraction ─────────────────────────────────────────────────
-
-function extractCandidateId(raw: unknown): string {
-  if (!raw || typeof raw !== "object") return "";
-  const obj = raw as Record<string, unknown>;
-  const id =
-    (obj.candidate_id as string | undefined) ??
-    ((obj.data as Record<string, unknown> | undefined)?.id as string | undefined) ??
-    ((obj.data as Record<string, unknown> | undefined)?.candidate_id as string | undefined) ??
-    (
-      (obj.data as Record<string, unknown> | undefined)
-        ?.candidate as Record<string, unknown> | undefined
-    )?.id as string | undefined ??
-    "";
-  return typeof id === "string" ? id : "";
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Calls find_candidate directly, returns the UUID string.
- * Throws if the MCP server returns an error or no id.
- */
-export async function findCandidateDirect(email: string): Promise<string> {
-  console.log("[mcpDirect] find_candidate", email);
-  const raw = await invokeToolDirect("find_candidate", { email });
-  const id = extractCandidateId(raw);
-  if (!id) {
-    throw new Error(
-      `[mcpDirect] find_candidate returned no candidate_id. Raw: ${JSON.stringify(raw)}`,
-    );
-  }
-  console.log("[mcpDirect] candidate_id:", id);
-  return id;
-}
-
-/**
- * Calls get_candidate directly, returns the normalized candidate object.
+ * Calls get_candidate, returns the normalized candidate object.
  */
 export async function getCandidateDirect(
   candidateId: string,
@@ -84,7 +48,6 @@ export async function getCandidateDirect(
   const raw = (await invokeToolDirect("get_candidate", {
     candidate_id: candidateId,
   })) as Record<string, unknown>;
-  // Unwrap common API envelopes (data, result, candidate)
   for (const key of ["data", "result", "candidate"] as const) {
     const inner = raw[key];
     if (inner && typeof inner === "object" && !Array.isArray(inner)) {
@@ -95,7 +58,7 @@ export async function getCandidateDirect(
 }
 
 /**
- * Calls get_jobs_by_skills directly, returns jobs array (or null on failure).
+ * Calls get_jobs_by_skills, returns jobs array (or null on failure).
  */
 export async function getJobsBySkillsDirect(
   candidateId: string,
@@ -125,7 +88,7 @@ export async function getJobsBySkillsDirect(
 }
 
 /**
- * Calls get_skill_progression directly (non-fatal, returns null on failure).
+ * Calls get_skill_progression (non-fatal, returns null on failure).
  */
 export async function getSkillProgressionDirect(
   roleId: string,
@@ -140,9 +103,8 @@ export async function getSkillProgressionDirect(
 }
 
 /**
- * Returns true if the NEXT_PUBLIC_MCP_API_BASE env var is configured.
- * Used to decide whether to attempt direct calls or fall back to the agent.
+ * Always true — direct calls use Mobeus /api/invoke/* proxy (relative URLs).
  */
 export function isMcpDirectAvailable(): boolean {
-  return !!MCP_API_BASE;
+  return true;
 }
