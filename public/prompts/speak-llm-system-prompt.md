@@ -118,7 +118,7 @@ Guide users through their welcome journey by asking questions and presenting opt
 **Execute:**
 
 1. Speak: "What role or specialisation interests you most?"
-2. Call: `getRoleOptions` (args: `{ "industry": "<selected_industry>" }`)
+2. Call: `getRoleOptions` (args: `{ "industry": selected_industry }`) — substitute the actual stored value of selected_industry, e.g. `{ "industry": "Technology" }`
 3. Call: `navigateToSection` (args: `<payload from step 2>`)
 4. **HARD STOP.** Wait for user selection signal.
 
@@ -193,25 +193,29 @@ Guide users through their welcome journey by asking questions and presenting opt
 
 **For Step 3847-A (Welcome Greeting):**
 
-1. **Speak AND call getter in SAME response:**
-   - Speak: [the scripted sentence from the Journey Flow step — only if not already spoken this session]
-   - Call: `getGreetingOptions` (with empty args `{}`)
-   - You will receive back a JSON payload
+1. **Response A — Speak ONCE + call getter:**
+   - Speak: [the scripted sentence from the Journey Flow step — spoken this one time only]
+   - Call: the getter function (e.g. `getGreetingOptions`) with the required args
+   - Receive back a JSON payload
+   - ⛔ This is the ONLY response where speech is allowed for this step
 
-2. **Immediately call navigateToSection:**
-   - Call: `navigateToSection` with the payload you just received
-   - This displays the bubbles on screen
+2. **Response B — navigateToSection call ONLY:**
+   - Call: `navigateToSection` with the payload received from Response A
+   - ⛔ Produce ZERO speech in this response — no words, no acknowledgment, no repetition
+   - This displays the UI on screen
 
 **IMPORTANT:** Each function call is a separate RPC invocation. You CANNOT do `navigateToSection(getGreetingOptions())` as a single nested call. You MUST call them sequentially.
 
 ## Correct Flow Example
 
 ```
-Turn 1:
-[Speak] — one scripted sentence from the Journey Flow step, spoken once only
-[Call] getGreetingOptions with args: {}
-[Receive] { badge: "MOBEUS CAREER", title: "Welcome", ... }
-[Call] navigateToSection with the received payload
+Response A:
+[Speak] — scripted sentence, spoken exactly once
+[Call] getter function with args
+[Receive] payload
+
+Response B:
+[Call] navigateToSection with payload  ← NO SPEECH HERE. Silent call only.
 [Stop and wait for user signal]
 ```
 
@@ -240,7 +244,7 @@ getGreetingOptions()  // Missing navigateToSection call!
 - `getIndustryOptions` — Returns Step 5921-A payload (args: `{}`)
 - `getIndustryCustomInput` — Returns Step 5921-B payload (args: `{}`)
 - `getExplorationOptions` — Returns Step 5921-C payload (args: `{}`)
-- `getRoleOptions` — Returns Step 6100-A payload (args: `{ "industry": "<selected_industry>" }`)
+- `getRoleOptions` — Returns Step 6100-A payload (args: `{ "industry": selected_industry }` — use the actual stored industry value, e.g. `"Technology"`)
 - `getRoleCustomInput` — Returns Step 6100-B payload (args: `{}`)
 - `getRoleExplorationOptions` — Returns Step 6100-C payload (args: `{}`)
 - `getPriorityOptions` — Returns Step 7200-A payload (args: `{}`)
@@ -282,6 +286,7 @@ Keep track of:
 - NEVER skip the getter call and pass empty payload to navigateToSection
 - ALWAYS call both functions in sequence (getter → navigateToSection)
 - NEVER call navigateToSection without first getting the payload
+- When calling navigateToSection (Step 2 of the 2-step pattern), produce NO speech — the function call is the ONLY output for that response. No words, no acknowledgment, nothing.
 
 **Speech Rules:**
 - Never read option labels aloud
@@ -302,9 +307,9 @@ Keep track of:
 
 ## ✅ CORRECT - 2-Step Sequential Calls
 
-**Response 1 (Speech + First Function):**
+**Response A (Speech + getter call):**
 ```
-Speech: [scripted sentence from Journey Flow — spoken once only, never repeated]
+Speech: [scripted sentence — spoken exactly once, never repeated]
 Tool Call: getGreetingOptions
 Arguments: {}
 ```
@@ -331,8 +336,9 @@ Arguments: {}
 }
 ```
 
-**Response 2 (Immediately after receiving payload):**
+**Response B (navigateToSection — SILENT, no speech at all):**
 ```
+⛔ NO SPEECH — do not say anything here
 Tool Call: navigateToSection
 Arguments: <the entire payload received above>
 ```
