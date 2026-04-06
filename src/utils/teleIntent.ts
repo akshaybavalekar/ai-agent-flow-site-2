@@ -47,10 +47,12 @@ export function sendLinkedInContinueIntent(
   if (options?.steerModel) {
     void teleAcknowledge(
       "[SYSTEM] LinkedIn path (voice). " +
-        "Speak 'Connecting with LinkedIn…' and wait. " +
-        "Do NOT call find_candidate, get_candidate, or any MCP tool — " +
-        "the frontend is fetching candidate data directly via REST and will send a [SYSTEM] signal with the CandidateSheet payload when ready. " +
-        "FORBIDDEN on this path: register_candidate, find_candidate, get_candidate.",
+        "Execute Step OB-6A: speak 'Connecting with LinkedIn…' and call navigateToSection with LoadingLinkedIn payload. " +
+        "The frontend will attempt to pre-fetch candidate data. " +
+        "If you receive '[SYSTEM] LinkedIn data ready', call navigateToSection with that exact payload immediately. " +
+        "If you do NOT receive that signal within a few seconds, call find_candidate with email " +
+        email +
+        " yourself, extract the candidate_id, call get_candidate with that id, then call navigateToSection with CandidateSheet.",
       { visible: false },
     );
   }

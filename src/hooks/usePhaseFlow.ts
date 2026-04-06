@@ -873,9 +873,25 @@ export function usePhaseFlow() {
           );
         } else {
           void teleAcknowledge(
-            "[SYSTEM] LinkedIn pre-fetch failed. Proceed manually: " +
-            "call find_candidate with email linkedin_demo@trainco.com, extract candidate_id, " +
-            "call get_candidate with that id, then call navigateToSection with CandidateSheet.",
+            "[SYSTEM] LinkedIn pre-fetch could not complete from the frontend. " +
+            "You MUST now complete this step yourself — do NOT stay on LoadingLinkedIn. " +
+            "Call find_candidate with email linkedin_demo@trainco.com. " +
+            "Extract the candidate_id from the response. " +
+            "Call get_candidate with that candidate_id. " +
+            "Then call navigateToSection with this payload (replacing <candidate_id> with the real UUID): " +
+            JSON.stringify({
+              badge: "MOBEUS CAREER",
+              title: "Confirm your details",
+              subtitle: "Review your profile",
+              generativeSubsections: [
+                {
+                  id: "candidate-data",
+                  templateId: "CandidateSheet",
+                  props: { _sessionEstablished: { candidateId: "<candidate_id>" } },
+                },
+              ],
+            }) +
+            " Do this NOW in your next response. Do NOT wait for any other signal.",
           );
         }
       })();
