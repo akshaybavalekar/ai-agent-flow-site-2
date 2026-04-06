@@ -13,7 +13,7 @@ import { useBrowserSpeech } from "@/hooks/useBrowserSpeech";
 import { useSpeechFallbackNudge } from "@/hooks/useSpeechFallbackNudge";
 import { matchesLinkedInRegistrationIntent } from "@/utils/voiceMatch";
 import {
-  LINKEDIN_DEMO_CANDIDATE_ID,
+  findCandidateDirect,
   getCandidateDirect,
   getJobsBySkillsDirect,
   getSkillProgressionDirect,
@@ -148,10 +148,10 @@ export function RegistrationForm({
     );
 
     const runDirectFlow = async () => {
-      // Hardcoded demo candidate — skip find_candidate entirely
-      const candidateId = LINKEDIN_DEMO_CANDIDATE_ID;
+      // Step 1: find_candidate
+      const candidateId = await findCandidateDirect(email);
 
-      // get_candidate
+      // Step 2: get_candidate (sequential — must follow find_candidate)
       const candidate = await getCandidateDirect(candidateId);
 
       // Step 3: jobs + skills in parallel (both non-fatal)
