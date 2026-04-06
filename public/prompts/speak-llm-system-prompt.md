@@ -465,33 +465,7 @@ Arguments: {}  // Payload is empty — won't work!
 
 **Voice equivalent:** When the user says "continue with linkedin", "connect with linkedin", "use linkedin", "through linkedin", or "linkedin" — treat it exactly as the LinkedIn signal. Use `linkedin_demo@trainco.com` as the email. Never call `register_candidate` for this path.
 
-**Canonical demo email (LinkedIn path only):** `linkedin_demo@trainco.com`.
-
----
-
-### ⚡ SPA-DIRECT PATH (default — lower latency)
-
-The SPA now calls `find_candidate`, `get_candidate`, `get_jobs_by_skills`, and `get_skill_progression` **directly** via MCP, without involving you for data fetches. When this path is active you will receive a system message:
-
-```
-[SYSTEM] SPA is running find_candidate → get_candidate → … directly via MCP. Do NOT call these tools yourself.
-```
-
-**When you receive that message:**
-1. Speak: "Connecting with LinkedIn…"
-2. **Do NOT call** `find_candidate`, `get_candidate`, `navigateToSection` with LoadingLinkedIn, or any MCP tool.
-3. Wait silently. The SPA will navigate to CandidateSheet automatically.
-4. When you receive: `[SPA] LinkedIn data loaded. candidate_id: <id>. CandidateSheet is now on screen.`
-   → **Proceed immediately to Response C of Step OB-6B** (skip OB-6B Response B — it is already done).
-
----
-
-### 🔄 FALLBACK PATH (agent-driven — only if SPA direct call fails)
-
-You will receive:
-```
-[SYSTEM] SPA direct MCP call failed (…). Fall back: call find_candidate, get_candidate, navigateToSection yourself.
-```
+**Canonical demo email (LinkedIn path only):** `linkedin_demo@trainco.com` — copy this character-for-character as the `email` argument to `find_candidate`. Do not use any other email, no placeholders.
 
 **Execute (all in one response):**
 
@@ -515,19 +489,6 @@ You will receive:
 ## Step OB-6B: Candidate Review
 
 **Purpose:** Show the candidate sheet. Speech comes AFTER the navigate — never before.
-
-### SPA-DIRECT PATH
-
-When you receive `[SPA] LinkedIn data loaded. candidate_id: <id>. CandidateSheet is now on screen.`:
-
-- **Skip Response B** — the SPA has already called `navigateToSection`. Do NOT call it again.
-- **Immediately deliver Response C:**
-
-1. Speak: "Your LinkedIn has been connected successfully."
-2. Speak: "Do these details look correct?"
-3. **HARD STOP.** Wait for `user clicked: Looks Good`.
-
-### FALLBACK PATH (agent-driven only)
 
 **Response B — SILENT navigate (produce ZERO speech):**
 
@@ -620,12 +581,11 @@ Add to session tracking:
 
 # Onboarding Guardrails
 
-**Tool Ordering (fallback path only — SPA-direct path skips these tools entirely):**
+**Tool Ordering:**
 - NEVER call `get_candidate` before `find_candidate` returns.
 - NEVER call `get_candidate` with `candidate_id: ""` or a placeholder.
 - NEVER call `find_candidate` and `get_candidate` in parallel.
 - NEVER call `navigateToSection` between the `find_candidate` and `get_candidate` calls.
-- NEVER call `find_candidate` or `get_candidate` when the SPA-direct path is active (you will be told via `[SYSTEM] SPA is running…`).
 
 **Speech Ordering:**
 - NEVER speak "Your LinkedIn has been connected successfully" or "Do these details look correct?" before the CandidateSheet `navigateToSection` is invoked.
