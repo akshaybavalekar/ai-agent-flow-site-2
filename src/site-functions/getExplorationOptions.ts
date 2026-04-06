@@ -14,7 +14,7 @@ export default function getExplorationOptions() {
     generativeSubsections: [
       {
         id: "5921-C",
-        templateId: "MultiSelectOptions",
+        templateId: "GlassmorphicOptions",
         props: {
           bubbles: [
             { label: "Solving a puzzle or problem" },

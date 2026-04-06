@@ -25,6 +25,12 @@ import getTellMoreOptions from './getTellMoreOptions';
 import getIndustryOptions from './getIndustryOptions';
 import getIndustryCustomInput from './getIndustryCustomInput';
 import getExplorationOptions from './getExplorationOptions';
+import getRoleOptions from './getRoleOptions';
+import getRoleCustomInput from './getRoleCustomInput';
+import getRoleExplorationOptions from './getRoleExplorationOptions';
+import getPriorityOptions from './getPriorityOptions';
+import getPriorityCustomInput from './getPriorityCustomInput';
+import getRegistrationForm from './getRegistrationForm';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -168,6 +174,77 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
   getExplorationOptions: {
     fn: getExplorationOptions,
     description: 'Returns exploration options for Step 5921-C in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getRoleOptions: {
+    fn: getRoleOptions,
+    description: 'Returns role selection options for Step 6100-A in the welcome journey. Pass industry from session to get tailored role bubbles.',
+    schema: {
+      type: 'object',
+      properties: {
+        industry: {
+          type: 'string',
+          description: 'Industry selected by the user (e.g., "Technology", "Finance")',
+        },
+      },
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getRoleCustomInput: {
+    fn: getRoleCustomInput,
+    description: 'Returns custom role text input for Step 6100-B in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getRoleExplorationOptions: {
+    fn: getRoleExplorationOptions,
+    description: 'Returns interest-based exploration options for Step 6100-C when the user is unsure of their role',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getPriorityOptions: {
+    fn: getPriorityOptions,
+    description: 'Returns career priority options for Step 7200-A in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getPriorityCustomInput: {
+    fn: getPriorityCustomInput,
+    description: 'Returns custom priority text input for Step 7200-B in the welcome journey',
+    schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    defaults: {},
+  },
+
+  getRegistrationForm: {
+    fn: getRegistrationForm,
+    description: 'Returns the registration form for Step 8500-A — the final step of the welcome journey',
     schema: {
       type: 'object',
       properties: {},

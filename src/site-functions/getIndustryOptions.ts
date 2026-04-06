@@ -14,7 +14,7 @@ export default function getIndustryOptions() {
     generativeSubsections: [
       {
         id: "5921-A",
-        templateId: "MultiSelectOptions",
+        templateId: "GlassmorphicOptions",
         props: {
           bubbles: [
             { label: "Technology" },
@@ -23,10 +23,7 @@ export default function getIndustryOptions() {
             { label: "Construction" },
             { label: "Something else" },
             { label: "I'm not sure" }
-          ],
-          showProgress: true,
-          progressStep: 0,
-          progressTotal: 3
+          ]
         }
       }
     ]
