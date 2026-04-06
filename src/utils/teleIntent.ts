@@ -46,13 +46,15 @@ export function sendLinkedInContinueIntent(
 ): Promise<void> {
   if (options?.steerModel) {
     void teleAcknowledge(
-      "[SYSTEM] LinkedIn path (voice). " +
-        "Execute Step OB-6A: speak 'Connecting with LinkedIn…' and call navigateToSection with LoadingLinkedIn payload. " +
-        "The frontend will attempt to pre-fetch candidate data. " +
-        "If you receive '[SYSTEM] LinkedIn data ready', call navigateToSection with that exact payload immediately. " +
-        "If you do NOT receive that signal within a few seconds, call find_candidate with email " +
+      "[SYSTEM] LinkedIn path (voice). The canonical `user clicked: Continue with LinkedIn | email: " +
         email +
-        " yourself, extract the candidate_id, call get_candidate with that id, then call navigateToSection with CandidateSheet.",
+        "` signal is being sent now via TellTele. Execute onboarding Step OB-6A only: " +
+        "speak 'Connecting with LinkedIn…', call navigateToSection with LoadingLinkedIn, " +
+        "then call `find_candidate` with email " +
+        email +
+        ", call `get_candidate` with the returned candidate_id, then call navigateToSection with CandidateSheet. " +
+        "FORBIDDEN on this path: `register_candidate`. " +
+        "If you already started `register_candidate`, abandon it and use `find_candidate` only.",
       { visible: false },
     );
   }

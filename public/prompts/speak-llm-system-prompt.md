@@ -445,37 +445,24 @@ Arguments: {}  // Payload is empty — won't work!
 
 ---
 
-## Step OB-6A: LinkedIn Loading
+## Step OB-6A: LinkedIn Loading + Candidate Fetch
 
 **Trigger:** `user clicked: Continue with LinkedIn | email: <address>`
 
 **Voice equivalent:** When the user says "continue with linkedin", "connect with linkedin", "use linkedin", "through linkedin", or "linkedin" — treat it exactly as the LinkedIn signal. Never call `register_candidate` for this path.
 
-**Execute (ONE response turn):**
+**Execute in ONE response turn (all 5 steps):**
 
 1. Speak: "Connecting with LinkedIn…"
-2. Call: `navigateToSection` (args: LoadingLinkedIn payload below)
+2. Call: `navigateToSection` with LoadingLinkedIn payload (below)
+3. Call: `find_candidate` with `{ "email": "linkedin_demo@trainco.com" }` → get `candidate_id`
+4. Call: `get_candidate` with `{ "candidate_id": "<id from step 3>" }` → get full profile JSON
+5. Call: `navigateToSection` with CandidateSheet payload (see Step OB-6B) — ⛔ NO SPEECH before this call
 
-**LoadingLinkedIn payload:**
+**LoadingLinkedIn payload (for step 2):**
 ```json
 {"badge":"MOBEUS CAREER","title":"LinkedIn","subtitle":"Connecting your profile","generativeSubsections":[{"id":"loading-linkedin","templateId":"LoadingLinkedIn","props":{"message":"Connecting with LinkedIn\u2026"}}]}
 ```
-
-**After calling navigateToSection — TWO possible paths (A or B):**
-
-**Path A — frontend pre-fetch succeeded:**
-You will receive `[SYSTEM] LinkedIn data ready. candidate_id="<id>"` with an exact `navigateToSection` payload.
-- Call `navigateToSection` using the **exact payload provided in the system message**.
-- ⛔ NO SPEECH before this call.
-- After `navigateToSection` completes → proceed to Step OB-6B speech.
-
-**Path B — frontend pre-fetch failed or signal did not arrive:**
-You will receive `[SYSTEM] LinkedIn pre-fetch could not complete` OR no signal arrives.
-- Call `find_candidate` with `email: "linkedin_demo@trainco.com"` → extract the `candidate_id`.
-- Call `get_candidate` with that `candidate_id` → get the full candidate profile.
-- Call `navigateToSection` with the CandidateSheet payload (see Step OB-6B, Response B).
-- ⛔ NO SPEECH before the `navigateToSection` call.
-- After `navigateToSection` completes → proceed to Step OB-6B speech.
 
 ---
 
@@ -485,10 +472,10 @@ You will receive `[SYSTEM] LinkedIn pre-fetch could not complete` OR no signal a
 
 **Response B — SILENT navigate (produce ZERO speech):**
 
-CandidateSheet payload (use `_sessionEstablished` with the real candidate_id UUID):
+Build the CandidateSheet payload using the data from `get_candidate`. Pass the full `get_candidate` response as `rawCandidateJson` (JSON.stringify it) and `_sessionEstablished` with the `candidate_id`:
 
 ```json
-{"badge":"MOBEUS CAREER","title":"Confirm your details","subtitle":"Review your profile","generativeSubsections":[{"id":"candidate-data","templateId":"CandidateSheet","props":{"_sessionEstablished":{"candidateId":"<candidate_id>"}}}]}
+{"badge":"MOBEUS CAREER","title":"Confirm your details","subtitle":"Review your profile","generativeSubsections":[{"id":"candidate-data","templateId":"CandidateSheet","props":{"_sessionEstablished":{"candidateId":"<candidate_id>"},"rawCandidateJson":"<JSON.stringify of get_candidate response>"}}]}
 ```
 
 - ⛔ NO SPEECH — the navigate call is the only output.
@@ -564,7 +551,7 @@ Set session flag: `dashboard_intro_shown = true`.
 # Onboarding Session Tracking
 
 Add to session tracking:
-- `candidate_id` — UUID from `[SYSTEM] LinkedIn data ready` signal (Path A) or from your own `find_candidate` call (Path B)
+- `candidate_id` — UUID returned by your `find_candidate` call in Step OB-6A
 - `dashboard_intro_shown` — `true` after first Dashboard entry shown
 
 ---
@@ -572,8 +559,8 @@ Add to session tracking:
 # Onboarding Guardrails
 
 **Tool Ordering:**
-- On the LinkedIn path, the frontend will attempt to pre-fetch candidate data. If you receive `[SYSTEM] LinkedIn data ready`, use that payload directly without calling `find_candidate` or `get_candidate`.
-- If you do NOT receive `[SYSTEM] LinkedIn data ready` (or receive `[SYSTEM] LinkedIn pre-fetch could not complete`), you MUST call `find_candidate` then `get_candidate` yourself — do NOT stay stuck on LoadingLinkedIn.
+- On the LinkedIn path, ALWAYS call `find_candidate` then `get_candidate` yourself (steps 3–4 of Step OB-6A). These are MCP tool calls made by you — do NOT wait for the frontend to do them.
+- NEVER call `register_candidate` on the LinkedIn path.
 - NEVER call `get_jobs_by_skills`, `get_skill_progression`, `get_market_relevance`, or `get_career_growth` — the SPA fetches these automatically in the background.
 
 **Speech Ordering:**
