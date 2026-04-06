@@ -25,12 +25,6 @@ import getTellMoreOptions from './getTellMoreOptions';
 import getIndustryOptions from './getIndustryOptions';
 import getIndustryCustomInput from './getIndustryCustomInput';
 import getExplorationOptions from './getExplorationOptions';
-import getRoleOptions from './getRoleOptions';
-import getRoleCustomInput from './getRoleCustomInput';
-import getRoleExplorationOptions from './getRoleExplorationOptions';
-import getPriorityOptions from './getPriorityOptions';
-import getPriorityCustomInput from './getPriorityCustomInput';
-import getRegistrationForm from './getRegistrationForm';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -174,82 +168,6 @@ export const siteFunctionManifest: Record<string, SiteFunctionEntry> = {
   getExplorationOptions: {
     fn: getExplorationOptions,
     description: 'Returns exploration options for Step 5921-C in the welcome journey',
-    schema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-    defaults: {},
-  },
-
-  getRoleOptions: {
-    fn: getRoleOptions,
-    description: 'Returns role selection options (MultiSelectOptions) for Step 6100-A. Pass the selected industry to get the correct role bubbles. Industry values: Technology, Finance, Healthcare, Construction, or any custom value for the generic list.',
-    schema: {
-      type: 'object',
-      properties: {
-        industry: {
-          type: 'string',
-          description: 'The industry selected by the user in Step 5921-A (e.g. "Technology", "Finance", "Healthcare", "Construction", or custom industry value)',
-        },
-      },
-      required: ['industry'],
-    },
-    defaults: {},
-  },
-
-  getRoleCustomInput: {
-    fn: getRoleCustomInput,
-    description: 'Returns custom role TextInput for Step 6100-B. Shown when user selects "Something else" at the Role step.',
-    schema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-    defaults: {},
-  },
-
-  getRoleExplorationOptions: {
-    fn: getRoleExplorationOptions,
-    description: 'Returns interest-based exploration options (MultiSelectOptions) for Step 6100-C. Shown when user selects "I\'m not sure" at the Role step. Pass the selected industry to get tailored interest bubbles.',
-    schema: {
-      type: 'object',
-      properties: {
-        industry: {
-          type: 'string',
-          description: 'The industry selected by the user (e.g. "Technology", "Finance", "Healthcare", "Construction", or custom)',
-        },
-      },
-      required: ['industry'],
-    },
-    defaults: {},
-  },
-
-  getPriorityOptions: {
-    fn: getPriorityOptions,
-    description: 'Returns priority selection options (MultiSelectOptions) for Step 7200-A. This is Step 3 of 3 in the qualification flow.',
-    schema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-    defaults: {},
-  },
-
-  getPriorityCustomInput: {
-    fn: getPriorityCustomInput,
-    description: 'Returns custom priority TextInput for Step 7200-B. Shown when user selects "Something else" at the Priority step.',
-    schema: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-    defaults: {},
-  },
-
-  getRegistrationForm: {
-    fn: getRegistrationForm,
-    description: 'Returns the RegistrationForm payload for Step 8500-A. This is the final step of the welcome journey. After calling navigateToSection with this payload, HARD STOP and wait for user registration signal.',
     schema: {
       type: 'object',
       properties: {},
