@@ -8,7 +8,7 @@
  * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
 export default function getRoleExplorationOptions() {
-  return {
+  const payload = {
     badge: 'MOBEUS CAREER',
     title: 'Exploration',
     subtitle: 'What draws you in?',
@@ -29,4 +29,7 @@ export default function getRoleExplorationOptions() {
       },
     ],
   };
+
+  console.log("[getRoleExplorationOptions] Returning payload:", JSON.stringify(payload, null, 2));
+  return payload;
 }

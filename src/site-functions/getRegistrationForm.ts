@@ -7,7 +7,7 @@
  * The voice agent can call this via the callSiteFunction RPC and pass the result to navigateToSection.
  */
 export default function getRegistrationForm() {
-  return {
+  const payload = {
     badge: 'MOBEUS CAREER',
     title: 'Almost there',
     subtitle: 'Create your profile',
@@ -19,4 +19,7 @@ export default function getRegistrationForm() {
       },
     ],
   };
+
+  console.log("[getRegistrationForm] Returning payload:", JSON.stringify(payload, null, 2));
+  return payload;
 }
