@@ -405,7 +405,7 @@ function lookupJobFromCache(
   return null;
 }
 
-const NAVIGATE_DRIFT_TIMEOUT_MS = 5000;
+const NAVIGATE_DRIFT_TIMEOUT_MS = 2000;
 
 export function usePhaseFlow() {
   const [generativeSubsections, setGenerativeSections] =
