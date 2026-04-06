@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-
-function getFramework(): Record<string, unknown> | null {
-  if (typeof window === "undefined") return null;
-  return (window as unknown as Record<string, unknown>).UIFramework as Record<string, unknown> | null;
-}
+import { useVoiceSessionStore } from "@/platform/stores/voice-session-store";
 
 export function DevToolbar() {
-  const [micMuted, setMicMuted] = useState(false);
+  // Read mic mute state and the real LiveKit toggle directly from the store.
+  // Previously this used window.UIFramework.toggleMute which is never assigned
+  // in this codebase, so the mic was never actually muted despite the icon changing.
+  const isMuted = useVoiceSessionStore((s) => s.isMuted);
+  const toggleMute = useVoiceSessionStore((s) => s.toggleMute);
+
   const [teleMuted, setTeleMuted] = useState(false);
   const muteLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -21,20 +22,11 @@ export function DevToolbar() {
   }, []);
 
   const handleToggleMic = useCallback(() => {
-    const fw = getFramework();
-    if (typeof fw?.toggleMute === "function") (fw.toggleMute as () => void)();
-    setMicMuted((prev) => !prev);
-  }, []);
+    toggleMute();
+  }, [toggleMute]);
 
   const handleToggleTele = useCallback(() => {
-    const fw = getFramework();
     const next = !teleMuted;
-
-    if (typeof fw?.setAvatarVideoMuted === "function")
-      (fw.setAvatarVideoMuted as (v: boolean) => void)(next);
-    if (typeof fw?.setAvatarVolume === "function")
-      (fw.setAvatarVolume as (v: number) => void)(next ? 0 : 1);
-
     sweepAudioElements(next);
     setTeleMuted(next);
   }, [teleMuted, sweepAudioElements]);
@@ -58,12 +50,12 @@ export function DevToolbar() {
         onClick={handleToggleMic}
         className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
         style={{
-          background: micMuted ? "var(--error-surface)" : "var(--glass-btn)",
-          border: micMuted ? "1px solid var(--error-border)" : "1px solid var(--glass-btn-border)",
+          background: isMuted ? "var(--error-surface)" : "var(--glass-btn)",
+          border: isMuted ? "1px solid var(--error-border)" : "1px solid var(--glass-btn-border)",
         }}
-        title={micMuted ? "Unmute mic" : "Mute mic"}
+        title={isMuted ? "Unmute mic" : "Mute mic"}
       >
-        {micMuted ? (
+        {isMuted ? (
           <MicOff size={14} className="text-red-400" />
         ) : (
           <Mic size={14} className="text-white/50" />
