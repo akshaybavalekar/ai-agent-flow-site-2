@@ -562,6 +562,37 @@ export function usePhaseFlow() {
               if (sess) fetchJobs(sess.candidateId);
             }
           }
+          // Onboarding path: agent passes rawCandidateJson (JSON.stringify of get_candidate result)
+          // directly in CandidateSheet props. Load it into the candidate cache so the existing
+          // auto-inject block below can populate name/title/experience/education as normal.
+          if (s.templateId === "CandidateSheet" && s.props?.rawCandidateJson) {
+            try {
+              const rawParsed =
+                typeof s.props.rawCandidateJson === "string"
+                  ? JSON.parse(s.props.rawCandidateJson)
+                  : s.props.rawCandidateJson;
+              // Unwrap common API envelopes (data, result, candidate)
+              const unwrapped =
+                (rawParsed?.data && typeof rawParsed.data === "object"
+                  ? rawParsed.data
+                  : rawParsed?.result && typeof rawParsed.result === "object"
+                  ? rawParsed.result
+                  : rawParsed?.candidate && typeof rawParsed.candidate === "object"
+                  ? rawParsed.candidate
+                  : rawParsed) as Record<string, unknown>;
+              loadIntoCacheBridge("candidate", unwrapped);
+              // If candidateId is in props, also persist session so CardStack auto-fetch works
+              if (typeof s.props.candidateId === "string" && s.props.candidateId) {
+                saveVisitorSession(s.props.candidateId);
+              }
+            } catch {
+              // Malformed rawCandidateJson — existing cache used as fallback
+            }
+            // Strip rawCandidateJson so the template never receives it
+            const { rawCandidateJson: _raw, ...cleanProps } = s.props;
+            s.props = cleanProps;
+          }
+
           if (TEMPLATES_NEEDING_CANDIDATE.has(s.templateId)) {
             if (!cache.candidate) {
               const sess = getVisitorSession();
