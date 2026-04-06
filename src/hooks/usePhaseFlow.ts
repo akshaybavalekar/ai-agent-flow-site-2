@@ -9,13 +9,13 @@ import { generateAiSummary, generateAiGapInsight } from "@/utils/jobInsights";
 import type { SkillRef, SkillGapRef } from "@/utils/jobInsights";
 import {
   fetchCandidate,
-  fetchLinkedInDemoCandidate,
+  fetchCandidateByEmail,
   fetchJobs,
   syncLearningState,
   resolveJobsArray,
   patchSiteFunctions,
-  DEMO_CANDIDATE_ID,
 } from "@/platform/mcpBridge";
+import { getLinkedInPlaceholderEmail } from "@/utils/teleIntent";
 import { readCache, loadIntoCache as loadIntoCacheBridge } from "@/platform/mcpCacheBridge";
 import { useTeleSpeech } from "@/hooks/useTeleSpeech";
 import { EVENT_NAVIGATE_POP_JOB_BROWSE } from "@/utils/teleUtils";
@@ -846,12 +846,11 @@ export function usePhaseFlow() {
       setGenerativeSections([loadingSection]);
       sectionsRef.current = [loadingSection];
 
-      // Fetch candidate data directly via REST — skips find_candidate entirely.
-      // Uses the hardcoded demo candidate ID (same as trainco-v1 reference implementation).
+      // Fetch candidate data directly via REST — bypasses LLM/Mobeus MCP entirely.
       // On success: LLM only needs to call navigateToSection (data already in cache).
-      // On failure: LLM is instructed to fall back via get_candidate with the known ID.
+      // On failure: LLM is instructed to fall back to the manual find_candidate path.
       void (async () => {
-        const candidateId = await fetchLinkedInDemoCandidate();
+        const candidateId = await fetchCandidateByEmail(getLinkedInPlaceholderEmail());
         if (candidateId) {
           void fetchJobs(candidateId);
           void teleAcknowledge(
@@ -874,9 +873,9 @@ export function usePhaseFlow() {
           );
         } else {
           void teleAcknowledge(
-            `[SYSTEM] LinkedIn pre-fetch failed. Proceed manually: ` +
-            `call get_candidate with candidate_id "${DEMO_CANDIDATE_ID}", ` +
-            `then call navigateToSection with CandidateSheet using _sessionEstablished: { candidateId: "${DEMO_CANDIDATE_ID}" }.`,
+            "[SYSTEM] LinkedIn pre-fetch failed. Proceed manually: " +
+            "call find_candidate with email linkedin_demo@trainco.com, extract candidate_id, " +
+            "call get_candidate with that id, then call navigateToSection with CandidateSheet.",
           );
         }
       })();
